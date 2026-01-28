@@ -1,0 +1,291 @@
+/* ================= SUBJECT SELECTION ================= */
+.subject-selection {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.subject-card {
+  background: #fff;
+  padding: 30px;
+  border-radius: var(--radius);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+  min-width: 240px;
+  border: 2px solid transparent;
+}
+
+.subject-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  border-color: var(--accent);
+}
+
+.subject-card h3 {
+  margin: 0 0 10px 0;
+  color: #1e293b;
+  font-size: 20px;
+}
+
+.subject-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* ================= EXPERIMENT LIST ================= */
+.experiment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 30px;
+}
+
+.experiment-card {
+  background: white;
+  border-radius: 10px;
+  padding: 24px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+}
+
+.experiment-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.experiment-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  margin: 16px 0;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s ease;
+}
+
+.experiment-row:hover {
+  border-color: var(--accent);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.experiment-item {
+  flex-grow: 1;
+  font-size: 16px;
+  color: #334155;
+}
+
+.experiment-item strong {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.experiment-id {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.experiment-id.available {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.experiment-id.completed {
+  background: var(--success-bg);
+  color: #065f46;
+}
+
+.experiment-id.retake {
+  background: var(--warning-bg);
+  color: #92400e;
+}
+
+/* ================= EXPERIMENT DETAILS ================= */
+.date {
+  color: var(--muted);
+  font-size: 14px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.date::before {
+  content: "📅";
+  font-size: 14px;
+}
+
+.date.warning::before {
+  content: "⚠️";
+}
+
+.submission-data {
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 4px solid var(--accent);
+  font-size: 14px;
+  line-height: 1.6;
+  color: #334155;
+  margin-top: 16px;
+  margin-bottom: 20px;
+}
+
+.submission-data.completed {
+  background: #f8fafc;
+  border-left-color: var(--success);
+}
+
+.submission-data.retake {
+  background: var(--warning-bg);
+  border-left-color: var(--warning);
+  color: #92400e;
+}
+
+/* ================= ACTION BUTTONS ================= */
+.action-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.start-btn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  min-width: 140px;
+}
+
+.start-btn:hover {
+  background: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.retake-btn {
+  background: var(--warning);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.retake-btn:hover {
+  background: #d97706;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.retake-btn::before {
+  content: "↻";
+  font-weight: bold;
+}
+
+.view-btn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.view-btn:hover {
+  background: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* ================= WARNING BANNER ================= */
+.warning-banner {
+  background: var(--warning-bg);
+  border: 2px solid var(--warning);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.warning-banner::before {
+  content: "⚠️";
+  font-size: 24px;
+}
+
+.warning-banner p {
+  margin: 0;
+  color: #92400e;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ================= BACK BUTTON ================= */
+.back-btn-container {
+  margin-bottom: 24px;
+}
+
+/* ================= EXPERIMENT LISTING RESPONSIVE ================= */
+@media(max-width:768px){
+  .subject-selection {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .subject-card {
+    width: 100%;
+    max-width: 300px;
+  }
+  
+  .experiment-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .experiment-card {
+    padding: 20px;
+  }
+  
+  .start-btn, .retake-btn, .view-btn {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+  }
+}

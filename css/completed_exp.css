@@ -1,0 +1,44 @@
+.profile-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 30px;
+    background: #e9e9e9;
+    border-radius: 20px;
+    box-shadow: 8px 8px 15px #d1d1d1, -8px -8px 15px #ffffff;
+}
+.profile-container h2 {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #333;
+    font-size: 1.8rem;
+}
+.experiment-item {
+    padding: 20px 30px;
+    margin-bottom: 18px;
+    border-radius: 16px;
+    background: #e9e9e9;
+    box-shadow: 8px 8px 15px #d1d1d1, -8px -8px 15px #ffffff;
+    border: none;
+}
+.experiment-item h3 {
+    margin: 0 0 12px 0;
+    color: #333;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+.experiment-item .date {
+    font-size: 0.9rem;
+    color: #555;
+    margin-bottom: 12px;
+    font-weight: 500;
+}
+.no-experiments {
+    text-align: center;
+    font-style: italic;
+    color: #666;
+    padding: 30px;
+    background: #e9e9e9;
+    border-radius: 16px;
+    box-shadow: inset 4px 4px 8px #d1d1d1, inset -4px -4px 8px #ffffff;
+    font-size: 1rem;
+}
