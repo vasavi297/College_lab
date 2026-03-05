@@ -326,6 +326,8 @@ body {
       background: #234ab7;
     }
 
+       
+
     @media (max-width: 950px) {
       body {
         padding: 10px;

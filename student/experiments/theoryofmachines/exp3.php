@@ -1,5 +1,7 @@
 <?php
 session_start();
+require_once __DIR__ . '/../../device_guard.php';
+ensure_desktop_only();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -386,14 +388,34 @@ session_start();
         <div style="display:flex;flex-direction:column;">
           <label for="expNo">Experiment No. 3</label>
           
-          <input type="hidden" id="subject" name="subject" value="theory_of_machines">
+          <input type="hidden" id="subject" name="subject" value="Theory of Machines">
           <input type="hidden" id="experiment_number" name="experiment_number" value="3"> 
         </div>
         <div style="display:flex;flex-direction:column;">
           <label for="expDate">Date</label>
           <input type="date" id="expDate" name="expDate" />
         </div>
+         <button type="button" id="fullscreenBtn" title="Full Screen" class="fullscreen-btn"style="position:absolute; right:70px;top:70px" onclick="toggleFullScreen()">Full Screen</button>
       </div>
+
+      <?php
+// Check if this is a retake
+$is_retake = isset($_GET['is_retake']) && $_GET['is_retake'] == '1';
+$retake_count = isset($_GET['retake_count']) ? intval($_GET['retake_count']) : 0;
+$attempt_number = $retake_count + 1;
+?>
+
+<?php if ($is_retake): ?>
+<div style="background: #fef3c7; padding: 12px; border-radius: 6px; border-left: 4px solid #f59e0b; margin-bottom: 20px;">
+    <strong>⚠️ Retake Submission - Attempt <?php echo $attempt_number; ?></strong>
+    <p style="margin: 5px 0 0 0; font-size: 0.9rem;">
+        Please correct your previous submission based on the feedback provided.
+        <?php if ($retake_count > 0): ?>
+            This is your <?php echo ($retake_count == 1 ? 'second' : ($retake_count == 2 ? 'third' : ($retake_count+1).'th')); ?> attempt.
+        <?php endif; ?>
+    </p>
+</div>
+<?php endif; ?>
 
       <h2 style="font-size: 24px;">NATURAL FREQUENCY OF SINGLE DEGREE UNDAMPED FREE VIBRATIONS</h2>
 
@@ -469,7 +491,7 @@ session_start();
  
        <div class="btn-group">
         <button type="button" onclick="previewExp()" style="cursor:pointer; background:#007bff; color:#fff; font-weight:600; padding:8px 16px; border-radius:6px; width: fit-content;">Preview</button>
-        <button type="button" onclick="submitExperiment()" style="cursor:pointer; background:#1a347a; color:#fff; font-weight:600; padding:8px 16px; border-radius:6px; width: fit-content;">Submit</button>
+        <button type="button" onclick="submitExperiment()" id="submitBtn" style="cursor:pointer; background:#1a347a; color:#fff; font-weight:600; padding:8px 16px; border-radius:6px; width: fit-content;">Submit</button>
       </div>
     </form>
 
@@ -513,6 +535,33 @@ session_start();
   </div>
 
   <script>
+    // -------- Fullscreen Toggle --------
+function toggleFullScreen() {
+    const elem = document.documentElement;
+    const btn = document.getElementById('fullscreenBtn');
+    if (!document.fullscreenElement) {
+        elem.requestFullscreen().then(() => {
+            btn.textContent = 'Exit Full Screen';
+            btn.title = 'Exit Full Screen';
+        });
+    } else {
+        document.exitFullscreen().then(() => {
+            btn.textContent = 'Full Screen';
+            btn.title = 'Full Screen';
+        });
+    }
+}
+
+document.addEventListener('fullscreenchange', function() {
+    const btn = document.getElementById('fullscreenBtn');
+    if (!document.fullscreenElement) {
+        btn.textContent = 'Full Screen';
+        btn.title = 'Full Screen';
+    } else {
+        btn.textContent = 'Exit Full Screen';
+        btn.title = 'Exit Full Screen';
+    }
+});
 // ---------- Calculator Variables ----------
 let hasDecimal = false;
 
@@ -669,6 +718,17 @@ function formatTextWithBreaks(text) {
     const escaped = escapeHtml(text);
     return escaped.replace(/\n/g, '<br>');
 }
+document.addEventListener("cheking tab switces", () => {
+  if (document.hidden) { console.log("tab_switched");
+  }
+});
+
+
+
+document.addEventListener("fullscreen", () => {
+  if (!document.fullscreenElement) {console.log("exit full screen");
+  }
+});
 
 // ---------- Preview ----------
 function previewExp() {
@@ -768,11 +828,31 @@ function previewExp() {
 }
 
 // ---------- Submit Experiment ----------
-function submitExperiment() {
+// ---------- Confirmation Dialog ----------
+async function confirmSubmit() {
+    return new Promise((resolve) => {
+        const confirmed = confirm("Do you really want to submit this experiment?\nPlease review all your answers before submitting.\nClick OK to submit ");
+        resolve(confirmed);
+    });
+}
+
+// ---------- Submit Experiment ----------
+async function submitExperiment() {
+    // Show confirmation dialog
+    const shouldSubmit = await confirmSubmit();
+    if (!shouldSubmit) {
+        return;
+    }
+    
     const form = document.getElementById('exp3-form');
-    const subject = 'theory_of_machines';
+  const subject = 'Theory of Machines';
     const experiment_number = 3; 
-    const employee_id = '456';
+    
+  // Get retake parameters if this is a retake
+  const urlParams = new URLSearchParams(window.location.search);
+  const retakeId = urlParams.get('retake_id');
+  const isRetake = urlParams.get('is_retake');
+  const retakeCount = urlParams.get('retake_count') || 0;
     
     // Validation
     if (!form.aim.value.trim() || !form.Procedure.value.trim() || 
@@ -877,8 +957,23 @@ function submitExperiment() {
     const postData = new URLSearchParams();
     postData.append('subject', subject);
     postData.append('experiment_number', experiment_number);
-    postData.append('employee_id', employee_id);
     postData.append('submission_data', submissionHtml);
+
+    // Add retake parameters if this is a retake
+    if (isRetake === '1' && retakeId) {
+      postData.append('is_retake', '1');
+      postData.append('retake_id', retakeId);
+      postData.append('retake_count', retakeCount);
+      console.log('Submitting retake:', { retakeId, retakeCount });
+    }
+
+    // Show loading state
+    const submitBtn = document.getElementById('submitBtn');
+    const originalText = submitBtn ? submitBtn.textContent : 'Submit';
+    if (submitBtn) {
+        submitBtn.textContent = 'Submitting...';
+        submitBtn.disabled = true;
+    }
 
     fetch('../../submit_experiment.php', {
         method: 'POST',
@@ -887,22 +982,37 @@ function submitExperiment() {
     })
     .then(res => {
         if (!res.ok) {
-            throw new Error('Network response was not ok');
+        throw new Error('Network response was not ok: ' + res.status);
         }
         return res.json();
     })
     .then(data => {
+        // Reset button
+        if (submitBtn) {
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+        }
+        
         if (data.success) {
             alert(data.message);
-            // Optional: clear form or redirect
-            // form.reset();
+        if (data.is_retake) {
+          window.location.href = '../../retake_exp.php?retake_success=1';
+        } else {
+            setTimeout(() => {
+                window.location.href = '../../updated_exp.php?subject=Theory%20of%20Machines';
+            }, 1500);
+        }
         } else {
             alert('Error: ' + data.message);
         }
     })
     .catch(err => {
         console.error('Error:', err);
-        alert('Error submitting experiment. Please check console for details.');
+        if (submitBtn) {
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+        }
+      alert('Error submitting experiment. Please try again.');
     });
 }
   </script>

@@ -1,5 +1,7 @@
 <?php
 session_start();
+require_once __DIR__ . '/../../device_guard.php';
+ensure_desktop_only();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -388,14 +390,34 @@ session_start();
         <div style="display:flex;flex-direction:column;">
           <label for="expNo">Experiment No. 1</label>
           
-          <input type="hidden" id="subject" name="subject" value="theory_of_machines">
+          <input type="hidden" id="subject" name="subject" value="Theory of Machines">
           <input type="hidden" id="experiment_number" name="experiment_number" value="1">
         </div>
         <div style="display:flex;flex-direction:column;">
           <label for="expDate">Date</label>
           <input type="date" id="expDate" name="expDate" />
         </div>
+         <button type="button" id="fullscreenBtn" title="Full Screen" class="fullscreen-btn"style="position:absolute; right:70px;top:70px" onclick="toggleFullScreen()">Full Screen</button>
       </div>
+
+      <?php
+// Check if this is a retake
+$is_retake = isset($_GET['is_retake']) && $_GET['is_retake'] == '1';
+$retake_count = isset($_GET['retake_count']) ? intval($_GET['retake_count']) : 0;
+$attempt_number = $retake_count + 1;
+?>
+
+<?php if ($is_retake): ?>
+<div style="background: #fef3c7; padding: 12px; border-radius: 6px; border-left: 4px solid #f59e0b; margin-bottom: 20px;">
+    <strong>⚠️ Retake Submission - Attempt <?php echo $attempt_number; ?></strong>
+    <p style="margin: 5px 0 0 0; font-size: 0.9rem;">
+        Please correct your previous submission based on the feedback provided.
+        <?php if ($retake_count > 0): ?>
+            This is your <?php echo ($retake_count == 1 ? 'second' : ($retake_count == 2 ? 'third' : ($retake_count+1).'th')); ?> attempt.
+        <?php endif; ?>
+    </p>
+</div>
+<?php endif; ?>
 
 
       <h2 style="font-size: 25px;">HARTNEU GOVERNOR</h2>
@@ -414,97 +436,95 @@ session_start();
 
 
 
-      <h4>Tabular Form</h4>
-      <table>
-            <thead>
-    <tr>
-        <th rowspan="2">S.No</th>
-        <th colspan="2">Speed</th>
-        <th colspan="2">Radius</th>
-        <th colspan="2">Centrifugal Force</th>
-        <th rowspan="2">Stiffed <br>(K)</th>
-        <th rowspan="2">Sensitivity<br>(S)</th>
-    </tr>
-    <tr>
-        <th>N<sub>max</sub></th>
-        <th>N<sub>max</sub></th>
-        <th>R<sub>max</sub></th>
-        <th>R<sub>max</sub></th>
-        <th>Fc<sub> max</sub></th>
-        <th>Fc<sub> min</sub></th>
-    </tr>
-</thead>
-
-            <tbody>
-                <tr>
-                    <td>1</td>
-                    <td><input type="text" name="speed1"></td>
-                    <td><input type="text" name="speed2"></td>
-                    <td><input type="text" name="radius1"></td>
-                    <td><input type="text" name="radius2"></td>
-                    <td><input type="text" name="force1"></td>
-                    <td><input type="text" name="force2"></td>
-                    <td><input type="text" name="stiffed"></td>
-                    <td><input type="text" name="sensitivity"></td>
-                </tr>
-                <tr>
-                    <td>2</td>
-                    <td><input type="text" name="speed1"></td>
-                    <td><input type="text" name="speed2"></td>
-                    <td><input type="text" name="radius1"></td>
-                    <td><input type="text" name="radius2"></td>
-                    <td><input type="text" name="force1"></td>
-                    <td><input type="text" name="force2"></td>
-                    <td><input type="text" name="stiffed"></td>
-                    <td><input type="text" name="sensitivity"></td>
-                </tr>
-                <tr>
-                    <td>3</td>
-                    <td><input type="text" name="speed1"></td>
-                    <td><input type="text" name="speed2"></td>
-                    <td><input type="text" name="radius1"></td>
-                    <td><input type="text" name="radius2"></td>
-                    <td><input type="text" name="force1"></td>
-                    <td><input type="text" name="force2"></td>
-                    <td><input type="text" name="stiffed"></td>
-                    <td><input type="text" name="sensitivity"></td>
-                </tr>
-                <tr>
-                    <td>4</td>
-                    <td><input type="text" name="speed1"></td>
-                    <td><input type="text" name="speed2"></td>
-                    <td><input type="text" name="radius1"></td>
-                    <td><input type="text" name="radius2"></td>
-                    <td><input type="text" name="force1"></td>
-                    <td><input type="text" name="force2"></td>
-                    <td><input type="text" name="stiffed"></td>
-                    <td><input type="text" name="sensitivity"></td>
-                </tr>
-                <tr>
-                    <td>5</td>
-                    <td><input type="text" name="speed1"></td>
-                    <td><input type="text" name="speed2"></td>
-                    <td><input type="text" name="radius1"></td>
-                    <td><input type="text" name="radius2"></td>
-                    <td><input type="text" name="force1"></td>
-                    <td><input type="text" name="force2"></td>
-                    <td><input type="text" name="stiffed"></td>
-                    <td><input type="text" name="sensitivity"></td>
-                </tr>
-                <tr>
-                    <td>6</td>
-                    <td><input type="text" name="speed1"></td>
-                    <td><input type="text" name="speed2"></td>
-                    <td><input type="text" name="radius1"></td>
-                    <td><input type="text" name="radius2"></td>
-                    <td><input type="text" name="force1"></td>
-                    <td><input type="text" name="force2"></td>
-                    <td><input type="text" name="stiffed"></td>
-                    <td><input type="text" name="sensitivity"></td>
-                </tr>
-                
-            </tbody>
-        </table>
+     <h4>Tabular Form</h4>
+<table>
+    <thead>
+        <tr>
+            <th rowspan="2">S.No</th>
+            <th colspan="2">Speed</th>
+            <th colspan="2">Radius</th>
+            <th colspan="2">Centrifugal Force</th>
+            <th rowspan="2">Stiffed<br>(K)</th>
+            <th rowspan="2">Sensitivity<br>(S)</th>
+        </tr>
+        <tr>
+            <th>N<sub>max</sub></th>
+            <th>N<sub>min</sub></th>
+            <th>R<sub>max</sub></th>
+            <th>R<sub>min</sub></th>
+            <th>Fc<sub>max</sub></th>
+            <th>Fc<sub>min</sub></th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>1</td>
+            <td><input type="text" name="speed_max_1"></td>
+            <td><input type="text" name="speed_min_1"></td>
+            <td><input type="text" name="radius_max_1"></td>
+            <td><input type="text" name="radius_min_1"></td>
+            <td><input type="text" name="force_max_1"></td>
+            <td><input type="text" name="force_min_1"></td>
+            <td><input type="text" name="stiffness_1"></td>
+            <td><input type="text" name="sensitivity_1"></td>
+        </tr>
+        <tr>
+            <td>2</td>
+            <td><input type="text" name="speed_max_2"></td>
+            <td><input type="text" name="speed_min_2"></td>
+            <td><input type="text" name="radius_max_2"></td>
+            <td><input type="text" name="radius_min_2"></td>
+            <td><input type="text" name="force_max_2"></td>
+            <td><input type="text" name="force_min_2"></td>
+            <td><input type="text" name="stiffness_2"></td>
+            <td><input type="text" name="sensitivity_2"></td>
+        </tr>
+        <tr>
+            <td>3</td>
+            <td><input type="text" name="speed_max_3"></td>
+            <td><input type="text" name="speed_min_3"></td>
+            <td><input type="text" name="radius_max_3"></td>
+            <td><input type="text" name="radius_min_3"></td>
+            <td><input type="text" name="force_max_3"></td>
+            <td><input type="text" name="force_min_3"></td>
+            <td><input type="text" name="stiffness_3"></td>
+            <td><input type="text" name="sensitivity_3"></td>
+        </tr>
+        <tr>
+            <td>4</td>
+            <td><input type="text" name="speed_max_4"></td>
+            <td><input type="text" name="speed_min_4"></td>
+            <td><input type="text" name="radius_max_4"></td>
+            <td><input type="text" name="radius_min_4"></td>
+            <td><input type="text" name="force_max_4"></td>
+            <td><input type="text" name="force_min_4"></td>
+            <td><input type="text" name="stiffness_4"></td>
+            <td><input type="text" name="sensitivity_4"></td>
+        </tr>
+        <tr>
+            <td>5</td>
+            <td><input type="text" name="speed_max_5"></td>
+            <td><input type="text" name="speed_min_5"></td>
+            <td><input type="text" name="radius_max_5"></td>
+            <td><input type="text" name="radius_min_5"></td>
+            <td><input type="text" name="force_max_5"></td>
+            <td><input type="text" name="force_min_5"></td>
+            <td><input type="text" name="stiffness_5"></td>
+            <td><input type="text" name="sensitivity_5"></td>
+        </tr>
+        <tr>
+            <td>6</td>
+            <td><input type="text" name="speed_max_6"></td>
+            <td><input type="text" name="speed_min_6"></td>
+            <td><input type="text" name="radius_max_6"></td>
+            <td><input type="text" name="radius_min_6"></td>
+            <td><input type="text" name="force_max_6"></td>
+            <td><input type="text" name="force_min_6"></td>
+            <td><input type="text" name="stiffness_6"></td>
+            <td><input type="text" name="sensitivity_6"></td>
+        </tr>
+    </tbody>
+</table>
     <div style="font-family:Arial, sans-serif; border:1px solid #333; padding:15px; width:90%; margin:10px auto; background:#f9f9f9; border-radius:6px;">
       <h3 style="text-align:left; margin:0; color:#222;">Formulas :</h3>  
         <h4 style="text-align: left;"> H=b/a(R<sub>Max</sub> - R<sub>Max</sub>) </h4> 
@@ -524,7 +544,7 @@ session_start();
     
     
        <button type="button" onclick="previewExp()" style="cursor:pointer; background:#007bff; color:#fff; font-weight:600; padding:8px 16px; border-radius:6px; width: fit-content;">Preview </button>
-       <button type="button" onclick="submitExperiment()" style="cursor:pointer; background:#1a347a; color:#fff; font-weight:600; padding:8px 16px; border-radius:6px; width: fit-content;">Submit</button>
+       <button type="button" onclick="submitExperiment()" id="submitBtn" style="cursor:pointer; background:#1a347a; color:#fff; font-weight:600; padding:8px 16px; border-radius:6px; width: fit-content;">Submit</button>
       </div>
     </form>
    <style>
@@ -583,64 +603,83 @@ session_start();
     </aside>
   </div>
  
-  <script >
-    window.onerror = function(msg, url, lineNo, columnNo, error) {
-    console.error('JavaScript Error: ' + msg + '\nURL: ' + url + '\nLine: ' + lineNo + '\nColumn: ' + columnNo + '\nError object: ' + JSON.stringify(error));
-    return false;
-};
+    <script>
+        // -------- Fullscreen Toggle --------
+function toggleFullScreen() {
+    const elem = document.documentElement;
+    const btn = document.getElementById('fullscreenBtn');
+    if (!document.fullscreenElement) {
+        elem.requestFullscreen().then(() => {
+            btn.textContent = 'Exit Full Screen';
+            btn.title = 'Exit Full Screen';
+        });
+    } else {
+        document.exitFullscreen().then(() => {
+            btn.textContent = 'Full Screen';
+            btn.title = 'Full Screen';
+        });
+    }
+}
 
+document.addEventListener('fullscreenchange', function() {
+    const btn = document.getElementById('fullscreenBtn');
+    if (!document.fullscreenElement) {
+        btn.textContent = 'Full Screen';
+        btn.title = 'Full Screen';
+    } else {
+        btn.textContent = 'Exit Full Screen';
+        btn.title = 'Exit Full Screen';
+    }
+});
+// Debug flag
+const DEBUG = true;
 
+// Calculator functions (keep as is)
 let hasDecimal = false;
 
-        function press(value) {
-            const display = document.getElementById('calc-display');
-            
-            // Reset decimal flag when operator is pressed
-            if (['+', '-', '*', '/'].includes(value)) {
-                hasDecimal = false;
-            }
-            
-            display.value += value;
-        }
+function press(value) {
+    const display = document.getElementById('calc-display');
+    if (['+', '-', '*', '/'].includes(value)) {
+        hasDecimal = false;
+    }
+    display.value += value;
+}
 
-        function addDecimal() {
-            const display = document.getElementById('calc-display');
-            
-            // If no decimal in current number, add it
-            if (!hasDecimal) {
-                // If display is empty or last character is operator, add "0." first
-                if (display.value === '' || ['+', '-', '*', '/'].includes(display.value.slice(-1))) {
-                    display.value += '0.';
-                } else {
-                    display.value += '.';
-                }
-                hasDecimal = true;
-            }
+function addDecimal() {
+    const display = document.getElementById('calc-display');
+    if (!hasDecimal) {
+        if (display.value === '' || ['+', '-', '*', '/'].includes(display.value.slice(-1))) {
+            display.value += '0.';
+        } else {
+            display.value += '.';
         }
+        hasDecimal = true;
+    }
+}
 
-        function clearCalc() {
-            document.getElementById('calc-display').value = "";
-            hasDecimal = false;
-        }
+function clearCalc() {
+    document.getElementById('calc-display').value = "";
+    hasDecimal = false;
+}
 
-        function calculate() {
-            const display = document.getElementById('calc-display');
-            try {
-                // Handle trailing decimal
-                if (display.value.slice(-1) === '.') {
-                    display.value += '0';
-                }
-                
-                display.value = eval(display.value);
-                hasDecimal = display.value.includes('.');
-            } catch (e) {
-                display.value = "Error";
-                hasDecimal = false;
-            }
+function calculate() {
+    const display = document.getElementById('calc-display');
+    try {
+        if (display.value.slice(-1) === '.') {
+            display.value += '0';
         }
+        display.value = eval(display.value);
+        hasDecimal = display.value.includes('.');
+    } catch (e) {
+        display.value = "Error";
+        hasDecimal = false;
+    }
+}
 
 // ---------- Drag & Drop ----------
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded - setting up drag and drop');
+    
     const tools = document.querySelectorAll('.apparatus-btn');
     tools.forEach(tool => {
         tool.setAttribute('draggable', 'true');
@@ -660,6 +699,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const dropZone = document.getElementById('apparatus-dropbox');
+    if (!dropZone) {
+        console.error('Drop zone not found!');
+        return;
+    }
+    
     dropZone.addEventListener('dragover', (e) => { 
         e.preventDefault(); 
         e.dataTransfer.dropEffect = 'copy'; 
@@ -718,20 +762,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         dropZone.appendChild(item);
     }
-});
-
-// Prevent form submission on Enter key except for textareas
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('exp1-form');
     
-    form.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-            if (e.target.tagName !== 'TEXTAREA') {
+    // Prevent form submission on Enter key
+    const form = document.getElementById('exp1-form');
+    if (form) {
+        form.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
                 e.preventDefault();
                 return false;
             }
-        }
-    });
+        });
+    }
 });
 
 function escapeHtml(str) {
@@ -749,10 +790,27 @@ function formatTextWithBreaks(text) {
     const escaped = escapeHtml(text);
     return escaped.replace(/\n/g, '<br>');
 }
+document.addEventListener("cheking tab switces", () => {
+  if (document.hidden) { console.log("tab_switched");
+  }
+});
+
+
+
+document.addEventListener("fullscreen", () => {
+  if (!document.fullscreenElement) {console.log("exit full screen");
+  }
+});
 
 // ---------- Preview ----------
 function previewExp() {
+    console.log('Preview button clicked');
     const form = document.getElementById('exp1-form');
+    if (!form) {
+        alert('Form not found!');
+        return;
+    }
+    
     const apparatusList = Array.from(document.querySelectorAll("#apparatus-dropbox .tool-item"))
         .map(el => el.textContent.trim());
 
@@ -780,7 +838,7 @@ function previewExp() {
     }
 </style>
 <div class="header-row">
-    <div><b>Experiment No.:</b> ${escapeHtml(form.experiment_id.value || '')}</div>
+    <div><b>Experiment No.:</b> 1</div>
     <div><b>Date:</b> ${escapeHtml(form.expDate.value || '')}</div>
 </div>
 <h2 style="text-align:center; margin-top: 0;">HARTNEU GOVERNOR</h2>
@@ -813,19 +871,18 @@ function previewExp() {
     </thead>
     <tbody>
         ${Array.from({length: 6}, (_, i) => {
-            // Get all input elements by their type and position in the table
-            const inputs = document.querySelectorAll(`table tbody tr:nth-child(${i + 1}) input[type="text"]`);
+            const row = i + 1;
             return `
         <tr>
-            <td>${i + 1}</td>
-            <td>${inputs[0] ? escapeHtml(inputs[0].value || '') : ''}</td>
-            <td>${inputs[1] ? escapeHtml(inputs[1].value || '') : ''}</td>
-            <td>${inputs[2] ? escapeHtml(inputs[2].value || '') : ''}</td>
-            <td>${inputs[3] ? escapeHtml(inputs[3].value || '') : ''}</td>
-            <td>${inputs[4] ? escapeHtml(inputs[4].value || '') : ''}</td>
-            <td>${inputs[5] ? escapeHtml(inputs[5].value || '') : ''}</td>
-            <td>${inputs[6] ? escapeHtml(inputs[6].value || '') : ''}</td>
-            <td>${inputs[7] ? escapeHtml(inputs[7].value || '') : ''}</td>
+            <td>${row}</td>
+            <td>${escapeHtml(form.querySelector(`input[name="speed_max_${row}"]`)?.value || '')}</td>
+            <td>${escapeHtml(form.querySelector(`input[name="speed_min_${row}"]`)?.value || '')}</td>
+            <td>${escapeHtml(form.querySelector(`input[name="radius_max_${row}"]`)?.value || '')}</td>
+            <td>${escapeHtml(form.querySelector(`input[name="radius_min_${row}"]`)?.value || '')}</td>
+            <td>${escapeHtml(form.querySelector(`input[name="force_max_${row}"]`)?.value || '')}</td>
+            <td>${escapeHtml(form.querySelector(`input[name="force_min_${row}"]`)?.value || '')}</td>
+            <td>${escapeHtml(form.querySelector(`input[name="stiffness_${row}"]`)?.value || '')}</td>
+            <td>${escapeHtml(form.querySelector(`input[name="sensitivity_${row}"]`)?.value || '')}</td>
         </tr>
         `}).join('')}
     </tbody>
@@ -854,17 +911,53 @@ function previewExp() {
     win.document.close();
 }
 
+// ---------- Confirmation Dialog ----------
+async function confirmSubmit() {
+    return new Promise((resolve) => {
+        const confirmed = confirm("Do you really want to submit this experiment?\nPlease review all your answers before submitting.\nClick OK to submit ");
+        resolve(confirmed);
+    });
+}
+
 // ---------- Submit Experiment ----------
-function submitExperiment() {
+async function submitExperiment() {
+    console.log('Submit button clicked - starting submission');
+    
+    // Show confirmation dialog
+    const shouldSubmit = await confirmSubmit();
+    if (!shouldSubmit) {
+        console.log('Submission cancelled by user');
+        return;
+    }
+    
     const form = document.getElementById('exp1-form');
-    const subject = 'theory_of_machines';
+    if (!form) {
+        alert('Error: Form not found!');
+        return;
+    }
+    
+    const subject = 'Theory of Machines';
     const experiment_number = 1;
-    const employee_id = '456';
+    
+    // Get retake parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const retakeId = urlParams.get('retake_id');
+    const isRetake = urlParams.get('is_retake');
+    const retakeCount = urlParams.get('retake_count') || 0;
+    
+    console.log('Form validation...');
     
     // Validation
-    if (!form.aim.value.trim() || !form.procedure.value.trim() || 
-        !form.result.value.trim()) {
-        alert("Please fill all required fields: Aim, Procedure, and Result.");
+    if (!form.aim.value.trim()) {
+        alert("Please enter the Aim.");
+        return;
+    }
+    if (!form.procedure.value.trim()) {
+        alert("Please enter the Procedure.");
+        return;
+    }
+    if (!form.result.value.trim()) {
+        alert("Please enter the Result.");
         return;
     }
 
@@ -875,7 +968,10 @@ function submitExperiment() {
         alert("Please add at least one apparatus.");
         return;
     }
-    // Prepare submission data
+    
+    console.log('Creating submission HTML...');
+    
+    // Create submission HTML
     const submissionHtml = `
 <style>
     .header-row {
@@ -900,7 +996,7 @@ function submitExperiment() {
     }
 </style>
 <div class="header-row">
-    <div><b>Experiment No.:</b> ${escapeHtml(form.experiment_id.value || '')}</div>
+    <div><b>Experiment No.:</b> 1</div>
     <div><b>Date:</b> ${escapeHtml(form.expDate.value || '')}</div>
 </div>
 <h2 style="text-align:center; margin-top: 0;">HARTNEU GOVERNOR</h2>
@@ -933,19 +1029,18 @@ function submitExperiment() {
     </thead>
     <tbody>
         ${Array.from({length: 6}, (_, i) => {
-            // Get all input elements by their type and position in the table
-            const inputs = document.querySelectorAll(`table tbody tr:nth-child(${i + 1}) input[type="text"]`);
+            const row = i + 1;
             return `
         <tr>
-            <td>${i + 1}</td>
-            <td>${inputs[0] ? escapeHtml(inputs[0].value || '') : ''}</td>
-            <td>${inputs[1] ? escapeHtml(inputs[1].value || '') : ''}</td>
-            <td>${inputs[2] ? escapeHtml(inputs[2].value || '') : ''}</td>
-            <td>${inputs[3] ? escapeHtml(inputs[3].value || '') : ''}</td>
-            <td>${inputs[4] ? escapeHtml(inputs[4].value || '') : ''}</td>
-            <td>${inputs[5] ? escapeHtml(inputs[5].value || '') : ''}</td>
-            <td>${inputs[6] ? escapeHtml(inputs[6].value || '') : ''}</td>
-            <td>${inputs[7] ? escapeHtml(inputs[7].value || '') : ''}</td>
+            <td>${row}</td>
+            <td>${escapeHtml(form.querySelector(`input[name="speed_max_${row}"]`)?.value || '')}</td>
+            <td>${escapeHtml(form.querySelector(`input[name="speed_min_${row}"]`)?.value || '')}</td>
+            <td>${escapeHtml(form.querySelector(`input[name="radius_max_${row}"]`)?.value || '')}</td>
+            <td>${escapeHtml(form.querySelector(`input[name="radius_min_${row}"]`)?.value || '')}</td>
+            <td>${escapeHtml(form.querySelector(`input[name="force_max_${row}"]`)?.value || '')}</td>
+            <td>${escapeHtml(form.querySelector(`input[name="force_min_${row}"]`)?.value || '')}</td>
+            <td>${escapeHtml(form.querySelector(`input[name="stiffness_${row}"]`)?.value || '')}</td>
+            <td>${escapeHtml(form.querySelector(`input[name="sensitivity_${row}"]`)?.value || '')}</td>
         </tr>
         `}).join('')}
     </tbody>
@@ -966,62 +1061,79 @@ function submitExperiment() {
 
 <h3>Result:</h3>
 <p>${formatTextWithBreaks(form.result.value || '')}</p>`;
-const postData = new URLSearchParams();
+
+    console.log('Preparing POST data...');
+    
+    const postData = new URLSearchParams();
     postData.append('subject', subject);
     postData.append('experiment_number', experiment_number);
-    postData.append('employee_id', employee_id);
     postData.append('submission_data', submissionHtml);
 
+    // Add retake parameters
+    if (isRetake === '1' && retakeId) {
+        postData.append('is_retake', '1');
+        postData.append('retake_id', retakeId);
+        postData.append('retake_count', retakeCount);
+        console.log('Submitting retake:', { retakeId, retakeCount });
+    }
+
+    // Show loading state
+    const submitBtn = document.getElementById('submitBtn');
+    const originalText = submitBtn ? submitBtn.textContent : 'Submit';
+    if (submitBtn) {
+        submitBtn.textContent = 'Submitting...';
+        submitBtn.disabled = true;
+    }
+
+    console.log('Sending fetch request...');
+    
     fetch('../../submit_experiment.php', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: postData.toString()
     })
     .then(res => {
+        console.log('Response received, status:', res.status);
         if (!res.ok) {
-            throw new Error('Network response was not ok');
+            throw new Error('Network response was not ok: ' + res.status);
         }
         return res.json();
     })
     .then(data => {
+        console.log('Response data:', data);
+        
+        // Reset button
+        if (submitBtn) {
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+        }
+        
         if (data.success) {
             alert(data.message);
-            // Optional: clear form or redirect
-            // form.reset();
+            if (data.is_retake) {
+                window.location.href = '../../retake_exp.php?retake_success=1';
+            } else {
+                setTimeout(() => {
+                    window.location.href = '../../updated_exp.php?subject=Theory%20of%20Machines';
+                }, 1500);
+            }
         } else {
             alert('Error: ' + data.message);
         }
     })
     .catch(err => {
-        console.error('Error:', err);
-        alert('Error submitting experiment. Please check console for details.');
+        console.error('Fetch error:', err);
+        if (submitBtn) {
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+        }
+        alert('Error submitting experiment. Please try again.');
     });
 }
-// More detailed debug
-const sidebar = document.querySelector('.sidebar');
-if (sidebar) {
-    console.log('Sidebar HTML content:', sidebar.innerHTML);
-    console.log('Sidebar dimensions:', {
-        width: sidebar.offsetWidth,
-        height: sidebar.offsetHeight,
-        clientWidth: sidebar.clientWidth,
-        clientHeight: sidebar.clientHeight
-    });
-    console.log('Sidebar position:', sidebar.getBoundingClientRect());
-    
-    // Check child elements
-    const apparatusBox = sidebar.querySelector('.apparatus-box');
-    const calculatorBox = sidebar.querySelector('.calculator-box');
-    console.log('Apparatus box exists:', !!apparatusBox);
-    console.log('Calculator box exists:', !!calculatorBox);
-    
-    if (apparatusBox) {
-        console.log('Apparatus box dimensions:', {
-            width: apparatusBox.offsetWidth,
-            height: apparatusBox.offsetHeight
-        });
-    }
-}
-  </script>
+
+// Test if function is accessible
+console.log('submitExperiment function defined:', typeof submitExperiment);
+</script>
+ 
 </body>
 </html>

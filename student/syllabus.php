@@ -1,5 +1,21 @@
 <?php
 session_start();
+$student_name = $_SESSION['name'] ?? 'Student';
+$roll_number = $_SESSION['roll_number'] ?? '';
+$student_semester = $_SESSION['semester'] ?? '';
+$semester_number = (function ($semester) {
+  $map = [
+    'I' => 1, 'II' => 2, 'III' => 3, 'IV' => 4,
+    'V' => 5, 'VI' => 6, 'VII' => 7, 'VIII' => 8
+  ];
+  if (isset($map[$semester])) {
+    return $map[$semester];
+  }
+  if (is_numeric($semester)) {
+    return (int)$semester;
+  }
+  return 1;
+})($student_semester);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -28,7 +44,19 @@ session_start();
   
   <!-- Welcome Banner with Logout Button -->
   <div class="student-name-banner">
-    <span>Welcome <?php echo isset($_SESSION['name']) ? htmlspecialchars($_SESSION['name']) : 'Student'; ?>...!</span>
+    <div>
+      <div style="font-weight:700; color:var(--text-dark);">Welcome <?php echo htmlspecialchars($student_name); ?> !!</div>
+      <div style="font-size:12px; color:var(--text-gray);">ID: <?php echo htmlspecialchars($roll_number); ?></div>
+      <?php if ($semester_number <= 2): ?>
+          <div style="font-size:11px; color:#15803d; background:#dcfce7; padding:3px 8px; border-radius:10px; margin-top:8px; display:inline-block;">
+              BSH Phase
+          </div>
+      <?php else: ?>
+          <div style="font-size:11px; color:#1d4ed8; background:#dbeafe; padding:3px 8px; border-radius:10px; margin-top:8px; display:inline-block;">
+              Professional Phase
+          </div>
+      <?php endif; ?>
+    </div>
     <a href="logout.php" class="logout-btn"> Logout</a>
   </div>
 

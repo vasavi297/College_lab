@@ -1,3 +1,8 @@
+<?php
+session_start();
+require_once __DIR__ . '/../../device_guard.php';
+ensure_desktop_only();
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -20,18 +25,37 @@
       <div class="exp-header">
         <div style="display:flex;flex-direction:column;">
           <label for="expNo">Experiment No.10</label>
-         <input type="hidden" id="subject" name="subject" value="chemistry">
+                 <input type="hidden" id="subject" name="subject" value="Chemistry">
     <input type="hidden" id="experiment_number" name="experiment_number" value="10">
                 </div>
         <div style="display:flex;flex-direction:column;">
           <label for="expDate">Date</label>
           <input type="date" id="expDate" name="expDate" />
         </div>
+         <button type="button" id="fullscreenBtn" title="Full Screen" class="fullscreen-btn"style="position:absolute; right:70px;top:70px" onclick="toggleFullScreen()">Full Screen</button>
       </div>
+
+            <?php
+// Check if this is a retake
+$is_retake = isset($_GET['is_retake']) && $_GET['is_retake'] == '1';
+$retake_count = isset($_GET['retake_count']) ? intval($_GET['retake_count']) : 0;
+$attempt_number = $retake_count + 1;
+?>
+
+<?php if ($is_retake): ?>
+<div style="background: #fef3c7; padding: 12px; border-radius: 6px; border-left: 4px solid #f59e0b; margin-bottom: 20px;">
+        <strong>⚠️ Retake Submission - Attempt <?php echo $attempt_number; ?></strong>
+        <p style="margin: 5px 0 0 0; font-size: 0.9rem;">
+                Please correct your previous submission based on the feedback provided.
+                <?php if ($retake_count > 0): ?>
+                        This is your <?php echo ($retake_count == 1 ? 'second' : ($retake_count == 2 ? 'third' : ($retake_count+1).'th')); ?> attempt.
+                <?php endif; ?>
+        </p>
+</div>
+<?php endif; ?>
 
       <h2>WAVELENGTH MESASUREMENT OF SAMPLE THROUGH UV-VISIBLE SPECTROSCOPY</h2>
 
-      <label for="aim">Aim</label>
       <textarea id="aim" name="aim" rows="3" placeholder="Enter experiment aim" style="width: 100%; display: block; overflow: auto; resize: none; padding: 10px; border: 1px solid #ccc; border-radius: 5px;"></textarea>
 
       <label>Apparatus Used (Drag and Drop)</label>
@@ -68,7 +92,7 @@
 
       <div class="btn-group" style="text-align: left; margin-top: 30px;">
         <button type="button" onclick="previewExp()" style="cursor:pointer; background:#007bff; color:#fff; font-weight:600; padding:10px 20px; border-radius:6px; border:none; margin-right: 10px;">Preview</button>
-        <button type="button" onclick="submitExperiment()" style="cursor:pointer; background:#1a347a; color:#fff; font-weight:600; padding:10px 20px; border-radius:6px; border:none;">Submit</button>
+        <button type="button" id="submitBtn" onclick="submitExperiment()" style="cursor:pointer; background:#1a347a; color:#fff; font-weight:600; padding:10px 20px; border-radius:6px; border:none;">Submit</button>
       </div>
     </form>
 
@@ -112,6 +136,33 @@
   </div>
 
   <script>
+    // -------- Fullscreen Toggle --------
+function toggleFullScreen() {
+    const elem = document.documentElement;
+    const btn = document.getElementById('fullscreenBtn');
+    if (!document.fullscreenElement) {
+        elem.requestFullscreen().then(() => {
+            btn.textContent = 'Exit Full Screen';
+            btn.title = 'Exit Full Screen';
+        });
+    } else {
+        document.exitFullscreen().then(() => {
+            btn.textContent = 'Full Screen';
+            btn.title = 'Full Screen';
+        });
+    }
+}
+
+document.addEventListener('fullscreenchange', function() {
+    const btn = document.getElementById('fullscreenBtn');
+    if (!document.fullscreenElement) {
+        btn.textContent = 'Full Screen';
+        btn.title = 'Full Screen';
+    } else {
+        btn.textContent = 'Exit Full Screen';
+        btn.title = 'Exit Full Screen';
+    }
+});
     // ---------- Calculator Functions ----------
     let hasDecimal = false;
 
@@ -272,7 +323,17 @@
         const escaped = escapeHtml(text);
         return escaped.replace(/\n/g, '<br>');
     }
+document.addEventListener("cheking tab switces", () => {
+  if (document.hidden) { console.log("tab_switched");
+  }
+});
 
+
+
+document.addEventListener("fullscreen", () => {
+  if (!document.fullscreenElement) {console.log("exit full screen");
+  }
+});
     // ---------- Preview ----------
     function previewExp() {
         const form = document.getElementById('exp10-form');
@@ -330,14 +391,52 @@
 
     // ---------- Submit Experiment ----------
     
-       function submitExperiment() { 
-        const form = document.getElementById('exp10-form');
-         const subject = 'chemistry';
-            const experiment_number = 10; // From your database
-            const employee_id = '123';
+         
+    // ---------- Confirmation Dialog ----------
+    async function confirmSubmit() {
+        return new Promise((resolve) => {
+            const confirmed = confirm("Do you really want to submit this experiment?\nPlease review all your answers before submitting.\nClick OK to submit ");
+            resolve(confirmed);
+        });
+    }
+
+    // ---------- Submit Experiment ----------
+    async function submitExperiment() { 
+        console.log('Submit button clicked - starting submission');
         
-        if (!form.aim.value.trim()) {
-            alert("Please fill the Aim field.");
+        // Show confirmation dialog
+        const shouldSubmit = await confirmSubmit();
+        if (!shouldSubmit) {
+            console.log('Submission cancelled by user');
+            return;
+        }
+        
+        const form = document.getElementById('exp10-form');
+        if (!form) {
+            alert('Error: Form not found!');
+            return;
+        }
+
+        const subject = 'Chemistry';
+        const experiment_number = 10;
+
+        // Get retake parameters if this is a retake
+        const urlParams = new URLSearchParams(window.location.search);
+        const retakeId = urlParams.get('retake_id');
+        const isRetake = urlParams.get('is_retake');
+        const retakeCount = urlParams.get('retake_count') || 0;
+
+        // Validation
+        if (!form.expDate.value.trim()) {
+            alert("Please enter Date.");
+            return;
+        }
+
+        if (!form.aim.value.trim() || !form.chemicals.value.trim() || 
+            !form.principle.value.trim() || !form.result.value.trim() ||
+            !form.procedure_a.value.trim() || !form.instrument.value.trim() ||
+            !form.Double_beam.value.trim()) {
+            alert("Please fill all required fields.");
             return;
         }
 
@@ -395,8 +494,23 @@
         const postData = new URLSearchParams();
             postData.append('subject', subject);
             postData.append('experiment_number', experiment_number);
-            postData.append('employee_id', employee_id);
             postData.append('submission_data', submissionHtml);
+
+            // Add retake parameters if this is a retake
+            if (isRetake === '1' && retakeId) {
+                postData.append('is_retake', '1');
+                postData.append('retake_id', retakeId);
+                postData.append('retake_count', retakeCount);
+                console.log('Submitting retake:', { retakeId, retakeCount });
+            }
+
+                  // Show loading state
+      const submitBtn = document.querySelector('button[onclick="submitExperiment()"]');
+      const originalText = submitBtn.textContent;
+      submitBtn.textContent = 'Submitting...';
+      submitBtn.disabled = true;
+
+      console.log('Sending fetch request...');
 
             fetch('../../submit_experiment.php', {
                 method: 'POST',
@@ -404,23 +518,56 @@
                 body: postData.toString()
             })
             .then(res => {
+                console.log('Response received, status:', res.status);
                 if (!res.ok) {
-                    throw new Error('Network response was not ok');
+                    throw new Error('Network response was not ok: ' + res.status);
                 }
                 return res.json();
             })
             .then(data => {
+                console.log('Response data:', data);
+                
+                // Reset button
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+                
                 if (data.success) {
                     alert(data.message);
-                    // Optional: clear form on success
-                    // form.reset();
+                    
+                    // Clear the form
+                    form.reset();
+                    // Clear apparatus dropbox
+                    const dropZone = document.getElementById('apparatus-dropbox');
+                    const placeholder = document.getElementById('apparatus-placeholder');
+                    if (dropZone) {
+                        const toolItems = dropZone.querySelectorAll('.tool-item');
+                        toolItems.forEach(item => item.remove());
+                        if (placeholder) {
+                            placeholder.style.display = 'inline';
+                        }
+                    }
+                    
+                    if (data.is_retake) {
+                        // Redirect back to retake page with success message
+                        window.location.href = '../../retake_exp.php?retake_success=1';
+                    } else {
+                        // Redirect to experiments list
+                        setTimeout(() => {
+                            window.location.href = '../../updated_exp.php?subject=Chemistry';
+                        }, 1500);
+                    }
                 } else {
                     alert('Error: ' + data.message);
                 }
             })
             .catch(err => {
-                console.error('Error:', err);
-                alert('Error submitting experiment. Please check console for details.');
+                console.error('Fetch error:', err);
+                
+                // Reset button
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+                
+                alert('Error submitting experiment. Please try again.');
             });
         }
   </script>

@@ -1,4 +1,6 @@
-<?php session_start(); ?>
+<?php session_start();
+require_once __DIR__ . '/../../device_guard.php';
+ensure_desktop_only(); ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -47,13 +49,14 @@
                     <label for="expNo">Experiment No. 1</label>
                    
                     <!-- Hidden fields for database submission -->
-                    <input type="hidden" id="subject" name="subject" value="chemistry">
+                    <input type="hidden" id="subject" name="subject" value="Chemistry">
                     <input type="hidden" id="experiment_number" name="experiment_number" value="1">
                 </div>
                 <div style="display:flex;flex-direction:column;">
                     <label for="expDate">Date</label>
                     <input type="date" id="expDate" name="expDate" required/>
                 </div>
+                 <button type="button" id="fullscreenBtn" title="Full Screen" class="fullscreen-btn"style="position:absolute; right:70px;top:70px" onclick="toggleFullScreen()">Full Screen</button>
             </div>
             <?php
 // Check if this is a retake
@@ -64,7 +67,7 @@ $attempt_number = $retake_count + 1;
 
 <?php if ($is_retake): ?>
 <div style="background: #fef3c7; padding: 12px; border-radius: 6px; border-left: 4px solid #f59e0b; margin-bottom: 20px;">
-    <strong>⚠️ Retake Submission - Attempt #<?php echo $attempt_number; ?></strong>
+    <strong>⚠️ Retake Submission - Attempt <?php echo $attempt_number; ?></strong>
     <p style="margin: 5px 0 0 0; font-size: 0.9rem;">
         Please correct your previous submission based on the feedback provided.
         <?php if ($retake_count > 0): ?>
@@ -91,61 +94,61 @@ $attempt_number = $retake_count + 1;
                     <li>Volumetric Analysis</li>
                     <li>Instrumental Analysis</li>
                 </ol>
-                <h4>a) Gravimetric Analysis</h4>
+                <h3>a) Gravimetric Analysis</h3>
                 <p>In gravimetric analysis, the estimation of substance is carried out by the process of weighing. The Constituent being determined is isolated as a compound of known and definite composition of insoluble form, which is collected and weighed.</p>
-                <h4>b) Volumetric Analysis</h4>
+                <h3>b) Volumetric Analysis</h3>
                 <p>This method of analysis deals with volumes of solution and the estimation of substance is carried out by the process of titration. This method is rapid and simple.</p>
-                <h4>c) Instrumental Analysis</h4>
+                <h3>c) Instrumental Analysis</h3>
                 <p>It is a field of Analytical chemistry that investigates analytes using scientific instruments.</p>
                 <h3>Terms used in Volumetric Analysis:</h3>
-                <h4>Titration</h4>
+                <h3>Titration</h3>
                 <p>Titration is a process of addition of known concentration of solution to the unknown solution up to the completion of the reaction.</p>
-                <h4>Titrant</h4>
+                <h3>Titrant</h3>
                 <p>The reagent of known concentration is called titrant.</p>
-                <h4>Titrate</h4>
+                <h3>Titrate</h3>
                 <p>The substance being titrated is termed as titrate.</p>
-                <h4>End Point</h4>
+                <h3>End Point</h3>
                 <p>The point at which the reaction is just complete is known as the equivalence point or end point.</p>
-                <h4>Indicator</h4>
+                <h3>Indicator</h3>
                 <p>The substance which is used in the titration to locate or to identify the end point visually on completion of titration by change of colour. Example: Methyl Orange, Phenolphthalein, Methyl Red.</p>
-                <h4>Standard Solution</h4>
+                <h3>Standard Solution</h3>
                 <p>A Solution of known concentration is known as standard solution.</p>
-                <h4>Primary Standard</h4>
+                <h3>Primary Standard</h3>
                 <p>The substance whose standard solution is prepared by dissolving a directly weighed substance in a definite volume of a solvent is called primary standard. Commonly used primary standards are anhydrous sodium carbonate, oxalic acid, Mohr's salt, potassium dichromate etc. A standard solution is prepared by dissolving an accurately weighed quantity of a highly pure material and diluting to an accurately known volume in a volumetric flask in called primary standard.</p>
-                <h4>Secondary standard</h4>
+                <h3>Secondary standard</h3>
                 <p>That substance which cannot be used to prepare a solution by direct weighing. The solution of this type are prepared with approximate strength and then standardised with a standard solution. The common secondary standards are sodium hydroxide, Inorganic acids, Potassium permanganate etc.</p>
-                <h4>Normality (N)</h4>
+                <h3>Normality (N)</h3>
                 <p>The number of gram equivalent of the solute per litre of solution is called as the normality of the solution.<br>
                 N = No. of Gram Equivalents of Solute / Volume of solution in Liters</p>
-                <h4>Molarity (M)</h4>
+                <h3>Molarity (M)</h3>
                 <p>The Molarity of a solution is the number of moles of solute per litre of the solution.<br>
                 M = No. of Moles of Solute / Volume of solution in Liters</p>
-                <h4>Accuracy</h4>
+                <h3>Accuracy</h3>
                 <p>Accuracy of a measurement system is the degree of closeness of measurements of a quantity to that quantity's actual (true) value. (or) -> It is defined as the concordance between experimental value and true value.</p>
-                <h4>Precision</h4>
+                <h3>Precision</h3>
                 <p>Precision of measurement system also called reproducibility or repeatability, is the degree to which repeated measurements under unchanged conditions show the same results (or) it is defined as the degree as the degree of agreement between experimental value and true value.</p>
                 <h3>Classification of Titrimetric Reactions:</h3>
                 <ol>
                     <li>
-                        <h4>Acid - Base Titrations or Neutralization Titrations</h4>
+                        <h3>Acid - Base Titrations or Neutralization Titrations</h3>
                         <p>-> Titration based upon neutralization reactions are called acid-base titrations.<br>
                         HCl + NaOH ⇌ H<sub>2</sub>O + NaCl<br>
                         H<sup>+</sup> + OH<sup>-</sup> ⇌ H<sub>2</sub>O<br>
                         -> The determination of the concentration of acids by using standard alkali solutions is acidimetry and the reverse process is alkalimetry.</p>
                     </li>
                     <li>
-                        <h4>Precipitation Titrations</h4>
+                        <h3>Precipitation Titrations</h3>
                         <p>-> Titration based upon the formation if insoluble precipitates when the reacting solutions are mixed together are called precipitation titrations.<br>
                         -> When a solution of silver nitrate is treated with sodium chloride a white precipitate of silver chloride is obtained.<br>
                         AgNO<sub>3</sub> + NaCl ⇌ NaNO<sub>3</sub> + AgCl</p>
                     </li>
                     <li>
-                        <h4>Redox Titrations</h4>
+                        <h3>Redox Titrations</h3>
                         <p>Redox titrations are based on a reduction oxidation reaction between an oxidising agent and reducing agent. A Potentiometer or redox indicator is usually used to determine the endpoint of the titration.<br>
                         2KMnO<sub>4</sub> + 5H<sub>2</sub>C<sub>2</sub>O<sub>4</sub> + 3H<sub>2</sub>SO<sub>4</sub> → K<sub>2</sub>SO<sub>4</sub> + 2MnSO<sub>4</sub> + 8H<sub>2</sub>O + 10CO<sub>2</sub> ↑</p>
                     </li>
                     <li>
-                        <h4>Complexometric Titrations</h4>
+                        <h3>Complexometric Titrations</h3>
                         <p>Complexometric titrations rely on the Formation of a complex between the analyte and the titrant. In general they require specialised indicators that form weak complexes with the analyte. Common examples are Eriochrome Black T for the titration of calcium and magnesium ions, and the chelating agent EDTA used to titrate metal ions in solution.<br>
                         Ca<sup>2+</sup> + EDTA → Ca-EDTA (Complex)</p>
                     </li>
@@ -192,7 +195,7 @@ $attempt_number = $retake_count + 1;
                 <p>-> Two theories have been proposed to explain the change of colour of acid base indicators with change in pH.</p>
                 <ol>
                     <li>
-                        <h4>Ostwald's Theory</h4>
+                        <h3>Ostwald's Theory</h3>
                         <p>According to this theory<br>
                         (a) The Colour change is due to ionisation for the acid base indicator. The unionised form that different colour than the ionised form.<br>
                         (b) The ionisation for the indicator is largely affected in acids and bases as it is either a weak acid or a weak base.<br>
@@ -205,7 +208,7 @@ $attempt_number = $retake_count + 1;
                         In presence of an acid the ionisation of HPh is practically negligible as the equilibrium shifts to left hand side due to high concentration of H<sup>+</sup> ions, the solution would remain colourless. On addition of alkali, hydrogen ions are removed by OH ions in the form of water molecules and the equilibrium shifts to right hand side. The concentration of Ph ions increases in solution and they impart pink colour to the solution.</p>
                     </li>
                     <li>
-                        <h4>Quinonoid theory</h4>
+                        <h3>Quinonoid theory</h3>
                         <p>According to this theory<br>
                         (a) The acid base indicator exist in two tautomeric forms having different structures, these two forms are in equilibrium. One form is termed benzenoid form and the other is quinonoid form.</p>
                         <div>
@@ -221,13 +224,40 @@ $attempt_number = $retake_count + 1;
             </div>
             
             <div class="btn-group">
-                <button type="button" onclick="previewExp()" style="cursor:pointer; background: #5396ff; color:#fff; font-weight:600; padding:8px 16px; border-radius:6px; width: fit-content;">Preview</button>
-                <button type="button" onclick="submitExperiment()" style="cursor:pointer; background:#1a347a; color:#fff; font-weight:600; padding:8px 16px; border-radius:6px; width: fit-content;">Submit</button>
+                <button type="button" onclick="previewExp()" style="cursor:pointer; background: #007bff; color:#fff; font-weight:600; padding:8px 16px; border-radius:6px; width: fit-content;">Preview</button>
+               <button type="button" onclick="submitExperiment()" id="submitBtn" style="cursor:pointer; background:#1a347a; color:#fff; font-weight:600; padding:8px 16px; border-radius:6px; width: fit-content;">Submit</button>
             </div>
         </form>
     </div>
    
  <script>
+    // -------- Fullscreen Toggle --------
+function toggleFullScreen() {
+    const elem = document.documentElement;
+    const btn = document.getElementById('fullscreenBtn');
+    if (!document.fullscreenElement) {
+        elem.requestFullscreen().then(() => {
+            btn.textContent = 'Exit Full Screen';
+            btn.title = 'Exit Full Screen';
+        });
+    } else {
+        document.exitFullscreen().then(() => {
+            btn.textContent = 'Full Screen';
+            btn.title = 'Full Screen';
+        });
+    }
+}
+
+document.addEventListener('fullscreenchange', function() {
+    const btn = document.getElementById('fullscreenBtn');
+    if (!document.fullscreenElement) {
+        btn.textContent = 'Full Screen';
+        btn.title = 'Full Screen';
+    } else {
+        btn.textContent = 'Exit Full Screen';
+        btn.title = 'Exit Full Screen';
+    }
+});
     // Static content HTML - capture it when page loads
     let staticContent = '';
     
@@ -252,6 +282,15 @@ $attempt_number = $retake_count + 1;
             .replace(/"/g, "&quot;")
             .replace(/'/g, "&#039;");
     }
+document.addEventListener("cheking tab switces", () => {
+  if (document.hidden) { console.log("tab_switched");
+  }
+});
+
+document.addEventListener("fullscreen", () => {
+  if (!document.fullscreenElement) {console.log("exit full screen");
+  }
+});
 
     // ---------- Preview ----------
     function previewExp() {
@@ -298,19 +337,39 @@ $attempt_number = $retake_count + 1;
         win.document.close();
     }
 
+    // ---------- Confirmation Dialog ----------
+    async function confirmSubmit() {
+        return new Promise((resolve) => {
+            const confirmed = confirm("Do you really want to submit this experiment?\nPlease review all your answers before submitting.\nClick OK to submit ");
+            resolve(confirmed);
+        });
+    }
+
     // ---------- Submit Experiment ----------
-    function submitExperiment() {
-        const form = document.getElementById('exp1-form');
-        const subject = 'chemistry';
-        const experiment_number = 1; // From your database
+    async function submitExperiment() {
+        console.log('Submit button clicked - starting submission');
         
-        // Get employee_id - IMPORTANT: This should come from your session
-        // You need to pass employee_id from retake_exp.php URL
+        // Show confirmation dialog
+        const shouldSubmit = await confirmSubmit();
+        if (!shouldSubmit) {
+            console.log('Submission cancelled by user');
+            return;
+        }
+        
+        const form = document.getElementById('exp1-form');
+        if (!form) {
+            alert('Error: Form not found!');
+            return;
+        }
+        
+        const subject = 'Chemistry';
+        const experiment_number = 1;
+        
+        // Get retake parameters if this is a retake
         const urlParams = new URLSearchParams(window.location.search);
         const retakeId = urlParams.get('retake_id');
         const isRetake = urlParams.get('is_retake');
         const retakeCount = urlParams.get('retake_count') || 0;
-        const employeeId = urlParams.get('emp_id'); // This should be passed from retake_exp.php
         
         // Validation
         if (!form.expDate.value.trim()) {
@@ -352,10 +411,10 @@ $attempt_number = $retake_count + 1;
         <h2 style="text-align:center; margin-top: 0;">Introduction To Chemistry Laboratory</h2>
         <div>${staticContent}</div>`;
 
+        // Prepare POST data
         const postData = new URLSearchParams();
         postData.append('subject', subject);
         postData.append('experiment_number', experiment_number);
-        postData.append('employee_id', employeeId);
         postData.append('submission_data', submissionHtml);
         
         // Add retake parameters if this is a retake
@@ -363,35 +422,66 @@ $attempt_number = $retake_count + 1;
             postData.append('is_retake', '1');
             postData.append('retake_id', retakeId);
             postData.append('retake_count', retakeCount);
-            console.log('Submitting retake:', { retakeId, retakeCount, employeeId });
+            console.log('Submitting retake:', { retakeId, retakeCount });
         }
+        
+        // Show loading state
+        const submitBtn = document.querySelector('button[onclick="submitExperiment()"]');
+        const originalText = submitBtn.textContent;
+        submitBtn.textContent = 'Submitting...';
+        submitBtn.disabled = true;
+        
+        console.log('Sending fetch request...');
+        
+        fetch('../../submit_experiment.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: postData.toString()
+        })
+        .then(res => {
+            console.log('Response received, status:', res.status);
+            if (!res.ok) {
+                throw new Error('Network response was not ok: ' + res.status);
+            }
+            return res.json();
+        })
+        .then(data => {
+            console.log('Response data:', data);
+            
+            // Reset button
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+            
+            if (data.success) {
+                alert(data.message);
+                
+                if (data.is_retake) {
+                    // Redirect to retake page
+                    window.location.href = '../../retake_exp.php?retake_success=1';
+                } else {
+                    // Show success message and redirect to experiments list
+                    setTimeout(() => {
+                        window.location.href = '../../updated_exp.php?subject=Chemistry';
+                    }, 1500);
+                }
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(err => {
+            console.error('Fetch error:', err);
+            
+            // Reset button
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+            
+            alert('Error submitting experiment. Please try again.');
+        });
+    }
 
-      fetch('../../submit_experiment.php', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-    body: postData.toString()
-})
-.then(res => {
-    if (!res.ok) {
-        throw new Error('Network response was not ok: ' + res.status);
-    }
-    return res.json(); // Direct JSON parsing
-})
-.then(data => {
-    if (data.success) {
-        alert(data.message);
-        if (data.is_retake) {
-            // Redirect back to retake page with success message
-            window.location.href = '../../retake_exp.php?retake_success=1';
-        }
-    } else {
-        alert('Error: ' + data.message);
-    }
-})
-.catch(err => {
-    console.error('Error:', err);
-    alert('Error submitting experiment. Please try again.');
-});}
 </script>
+
 </body>
-</html> 
+</html>
+
+

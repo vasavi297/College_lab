@@ -1,5 +1,7 @@
 <?php
 session_start();
+require_once __DIR__ . '/../../device_guard.php';
+ensure_desktop_only();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -33,14 +35,34 @@ session_start();
       <div class="exp-header">
         <div style="display:flex;flex-direction:column;">
           <label for="expNo">Experiment No.4</label>
-          <input type="hidden" id="subject" name="subject" value="chemistry">
+          <input type="hidden" id="subject" name="subject" value="Chemistry">
     <input type="hidden" id="experiment_number" name="experiment_number" value="4">
         </div>
         <div style="display:flex;flex-direction:column;">
           <label for="expDate">Date</label>
           <input type="date" id="expDate" name="expDate" required/>
         </div>
+         <button type="button" id="fullscreenBtn" title="Full Screen" class="fullscreen-btn"style="position:absolute; right:70px;top:70px" onclick="toggleFullScreen()">Full Screen</button>
       </div>
+
+      <?php
+// Check if this is a retake
+$is_retake = isset($_GET['is_retake']) && $_GET['is_retake'] == '1';
+$retake_count = isset($_GET['retake_count']) ? intval($_GET['retake_count']) : 0;
+$attempt_number = $retake_count + 1;
+?>
+
+<?php if ($is_retake): ?>
+<div style="background: #fef3c7; padding: 12px; border-radius: 6px; border-left: 4px solid #f59e0b; margin-bottom: 20px;">
+    <strong>⚠️ Retake Submission - Attempt <?php echo $attempt_number; ?></strong>
+    <p style="margin: 5px 0 0 0; font-size: 0.9rem;">
+        Please correct your previous submission based on the feedback provided.
+        <?php if ($retake_count > 0): ?>
+            This is your <?php echo ($retake_count == 1 ? 'second' : ($retake_count == 2 ? 'third' : ($retake_count+1).'th')); ?> attempt.
+        <?php endif; ?>
+    </p>
+</div>
+<?php endif; ?>
 
       <h2 style="font-size: 30px;">DETERMINATION OF STRENGTH OF AN ACID IN Pb-ACID BATTERY</h2>
 
@@ -161,8 +183,8 @@ session_start();
       <div class="btn-group">
         
         <button type="button" onclick="previewExp()" style="cursor:pointer; background:#007bff; color:#fff; font-weight:600; padding:8px 16px; border-radius:6px; width: fit-content;">Preview</button>
-       <button type="button" onclick="submitExperiment()" style="cursor:pointer; background:#1a347a; color:#fff; font-weight:600; padding:8px 16px; border-radius:6px; width: fit-content;">Submit</button>
-            </div>
+       <button type="button" onclick="submitExperiment()" id="submitBtn" style="cursor:pointer; background:#1a347a; color:#fff; font-weight:600; padding:8px 16px; border-radius:6px; width: fit-content;">Submit</button>
+        </div>
     </form>
 
     <!-- Sidebar -->
@@ -207,105 +229,125 @@ session_start();
   </div>
 
   <script>
-         // ---------- Calculator Functions ----------
-        let hasDecimal = false;
+    // -------- Fullscreen Toggle --------
+function toggleFullScreen() {
+    const elem = document.documentElement;
+    const btn = document.getElementById('fullscreenBtn');
+    if (!document.fullscreenElement) {
+        elem.requestFullscreen().then(() => {
+            btn.textContent = 'Exit Full Screen';
+            btn.title = 'Exit Full Screen';
+        });
+    } else {
+        document.exitFullscreen().then(() => {
+            btn.textContent = 'Full Screen';
+            btn.title = 'Full Screen';
+        });
+    }
+}
 
-        function press(value) {
-            const display = document.getElementById('calc-display');
-            
-            // Reset decimal flag when operator is pressed
-            if (['+', '-', '*', '/'].includes(value)) {
-                hasDecimal = false;
-            }
-            
-            display.value += value;
-        }
+document.addEventListener('fullscreenchange', function() {
+    const btn = document.getElementById('fullscreenBtn');
+    if (!document.fullscreenElement) {
+        btn.textContent = 'Full Screen';
+        btn.title = 'Full Screen';
+    } else {
+        btn.textContent = 'Exit Full Screen';
+        btn.title = 'Exit Full Screen';
+    }
+});
+        
+// ---------- Calculator Functions ----------
+let hasDecimal = false;
 
-        function addDecimal() {
-            const display = document.getElementById('calc-display');
-            
-            // If no decimal in current number, add it
-            if (!hasDecimal) {
-                // If display is empty or last character is operator, add "0." first
-                if (display.value === '' || ['+', '-', '*', '/'].includes(display.value.slice(-1))) {
-                    display.value += '0.';
-                } else {
-                    display.value += '.';
-                }
-                hasDecimal = true;
-            }
-        }
+function press(value) {
+    const display = document.getElementById('calc-display');
+    if (['+', '-', '*', '/'].includes(value)) {
+        hasDecimal = false;
+    }
+    display.value += value;
+}
 
-        function clearCalc() {
-            document.getElementById('calc-display').value = "";
-            hasDecimal = false;
+function addDecimal() {
+    const display = document.getElementById('calc-display');
+    if (!hasDecimal) {
+        if (display.value === '' || ['+', '-', '*', '/'].includes(display.value.slice(-1))) {
+            display.value += '0.';
+        } else {
+            display.value += '.';
         }
+        hasDecimal = true;
+    }
+}
 
-        function calculate() {
-            const display = document.getElementById('calc-display');
-            try {
-                // Handle trailing decimal
-                if (display.value.slice(-1) === '.') {
-                    display.value += '0';
-                }
-                
-                display.value = eval(display.value);
-                hasDecimal = display.value.includes('.');
-            } catch (e) {
-                display.value = "Error";
-                hasDecimal = false;
-            }
+function clearCalc() {
+    document.getElementById('calc-display').value = "";
+    hasDecimal = false;
+}
+
+function calculate() {
+    const display = document.getElementById('calc-display');
+    try {
+        if (display.value.slice(-1) === '.') {
+            display.value += '0';
         }
-       
-    // ---------- Drag & Drop ----------
-    document.addEventListener('DOMContentLoaded', () => {
-      const tools = document.querySelectorAll('.apparatus-btn');
-      tools.forEach(tool => {
+        display.value = eval(display.value);
+        hasDecimal = display.value.includes('.');
+    } catch (e) {
+        display.value = "Error";
+        hasDecimal = false;
+    }
+}
+
+// ---------- Drag & Drop ----------
+document.addEventListener('DOMContentLoaded', () => {
+    const tools = document.querySelectorAll('.apparatus-btn');
+    tools.forEach(tool => {
         tool.setAttribute('draggable', 'true');
         
         tool.addEventListener('dragstart', (e) => {
-          const name = tool.textContent.trim();
-          e.dataTransfer.setData('text/plain', name);
-          e.dataTransfer.effectAllowed = 'copy';
+            const name = tool.textContent.trim();
+            e.dataTransfer.setData('text/plain', name);
+            e.dataTransfer.effectAllowed = 'copy';
         });
 
         tool.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            addApparatusToDropbox(tool.textContent.trim());
-          }
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                addApparatusToDropbox(tool.textContent.trim());
+            }
         });
-      });
+    });
 
-      const dropZone = document.getElementById('apparatus-dropbox');
-      dropZone.addEventListener('dragover', (e) => { 
+    const dropZone = document.getElementById('apparatus-dropbox');
+    dropZone.addEventListener('dragover', (e) => { 
         e.preventDefault(); 
         e.dataTransfer.dropEffect = 'copy'; 
         dropZone.style.borderColor = '#3460d1';
         dropZone.style.backgroundColor = '#e8edff';
-      });
-      
-      dropZone.addEventListener('dragenter', (e) => { 
+    });
+    
+    dropZone.addEventListener('dragenter', (e) => { 
         e.preventDefault(); 
         dropZone.style.borderColor = '#3460d1';
         dropZone.style.backgroundColor = '#e8edff';
-      });
-      
-      dropZone.addEventListener('dragleave', (e) => { 
+    });
+    
+    dropZone.addEventListener('dragleave', (e) => { 
         dropZone.style.borderColor = '#ccd6ec';
         dropZone.style.backgroundColor = '#f8fafd';
-      });
-      
-      dropZone.addEventListener('drop', (e) => {
+    });
+    
+    dropZone.addEventListener('drop', (e) => {
         e.preventDefault();
         dropZone.style.borderColor = '#ccd6ec';
         dropZone.style.backgroundColor = '#f8fafd';
         const data = e.dataTransfer.getData('text/plain');
         if (!data) return;
         addApparatusToDropbox(data);
-      });
+    });
 
-      function addApparatusToDropbox(name) {
+    function addApparatusToDropbox(name) {
         const placeholder = document.getElementById('apparatus-placeholder');
         if (placeholder) placeholder.style.display = 'none';
         const dropZone = document.getElementById('apparatus-dropbox');
@@ -318,64 +360,71 @@ session_start();
         item.setAttribute('draggable', 'false');
 
         item.addEventListener('click', () => {
-          item.remove();
-          if (dropZone.children.length === 0 && placeholder) {
-            placeholder.style.display = 'inline';
-          }
+            item.remove();
+            if (dropZone.children.length === 0 && placeholder) {
+                placeholder.style.display = 'inline';
+            }
         });
         
         item.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            item.remove();
-            if (dropZone.children.length === 0 && placeholder) {
-              placeholder.style.display = 'inline';
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                item.remove();
+                if (dropZone.children.length === 0 && placeholder) {
+                    placeholder.style.display = 'inline';
+                }
             }
-          }
         });
 
         dropZone.appendChild(item);
-      }
-    });
+    }
+});
 
-    document.addEventListener('DOMContentLoaded', function() {
-      const form = document.getElementById('exp4-form');
-      
-      form.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-          if (e.target.tagName !== 'TEXTAREA') {
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('exp4-form');
+    
+    form.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
             e.preventDefault();
             return false;
-          }
         }
-      });
-      
-     
     });
+});
 
-    function escapeHtml(str) {
-      if (!str) return '';
-      return String(str)
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
-    }
-    function formatTextWithBreaks(text) {
-            if (!text) return '';
-            const escaped = escapeHtml(text);
-            return escaped.replace(/\n/g, '<br>');
-        }
+}
+
+function formatTextWithBreaks(text) {
+    if (!text) return '';
+    const escaped = escapeHtml(text);
+    return escaped.replace(/\n/g, '<br>');
+}
+document.addEventListener("cheking tab switces", () => {
+  if (document.hidden) { console.log("tab_switched");
+  }
+});
 
 
-    // ---------- Preview ----------
-    function previewExp() {
-      const form = document.getElementById('exp4-form');
-      const apparatusList = Array.from(document.querySelectorAll("#apparatus-dropbox .tool-item"))
+
+document.addEventListener("fullscreen", () => {
+  if (!document.fullscreenElement) {console.log("exit full screen");
+  }
+});
+
+// ---------- Preview ----------
+function previewExp() {
+    const form = document.getElementById('exp4-form');
+    const apparatusList = Array.from(document.querySelectorAll("#apparatus-dropbox .tool-item"))
         .map(el => el.textContent.trim());
 
-      const previewHtml = `
+    const previewHtml = `
 <style>
   .header-row {
     display: flex;
@@ -459,36 +508,130 @@ session_start();
 
 <h3>Result :</h3><p>${formatTextWithBreaks(form.result.value || '')}</p>`;
 
-      const win = window.open('', '_blank', 'width=900,height=800');
-      win.document.write('<!DOCTYPE html><html><head><title>Preview</title><meta charset="utf-8"></head><body style="font-family:Arial,sans-serif; padding:20px;">');
-      win.document.write(previewHtml);
-      win.document.write('</body></html>');
-      win.document.close();
+    const win = window.open('', '_blank', 'width=900,height=800');
+    win.document.write('<!DOCTYPE html><html><head><title>Preview</title><meta charset="utf-8"></head><body style="font-family:Arial,sans-serif; padding:20px;">');
+    win.document.write(previewHtml);
+    win.document.write('</body></html>');
+    win.document.close();
+}
+
+// ---------- Form Clearing Function ----------
+function clearForm() {
+    const form = document.getElementById('exp4-form');
+    if (!form) return;
+    
+    // Clear all textareas
+    form.querySelectorAll('textarea').forEach(textarea => {
+        textarea.value = '';
+    });
+    
+    // Clear all text inputs (except hidden fields)
+    form.querySelectorAll('input[type="text"]').forEach(input => {
+        input.value = '';
+    });
+    
+    // Clear date field
+    form.expDate.value = '';
+    
+    // Clear apparatus dropbox
+    const dropZone = document.getElementById('apparatus-dropbox');
+    const placeholder = document.getElementById('apparatus-placeholder');
+    if (dropZone) {
+        dropZone.innerHTML = '';
+        if (placeholder) {
+            dropZone.appendChild(placeholder);
+            placeholder.style.display = 'inline';
+        }
+    }
+    
+    // Clear calculator
+    const calcDisplay = document.getElementById('calc-display');
+    if (calcDisplay) {
+        calcDisplay.value = "";
+    }
+    hasDecimal = false;
+    
+    console.log('Form cleared successfully');
+}
+
+// ---------- Confirmation Dialog ----------
+async function confirmSubmit() {
+    return new Promise((resolve) => {
+        const confirmed = confirm("Do you really want to submit this experiment?\nPlease review all your answers before submitting.\nClick OK to submit ");
+        resolve(confirmed);
+    });
+}
+
+// ---------- Submit Experiment ----------
+async function submitExperiment() {
+    console.log('Submit button clicked - starting submission');
+    
+    // Show confirmation dialog
+    const shouldSubmit = await confirmSubmit();
+    if (!shouldSubmit) {
+        console.log('Submission cancelled by user');
+        return;
+    }
+    
+    const form = document.getElementById('exp4-form');
+    if (!form) {
+        alert('Error: Form not found!');
+        return;
+    }
+    
+    const subject = 'Chemistry';
+    const experiment_number = 4;
+    
+    // Get retake parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const retakeId = urlParams.get('retake_id');
+    const isRetake = urlParams.get('is_retake');
+    const retakeCount = urlParams.get('retake_count') || 0;
+    
+    // Validation
+    if (!form.aim.value.trim()) {
+        alert("Please enter the Aim.");
+        return;
+    }
+    if (!form.chemicals.value.trim()) {
+        alert("Please enter the Chemicals Required.");
+        return;
+    }
+    if (!form.principle.value.trim()) {
+        alert("Please enter the Principle.");
+        return;
+    }
+    if (!form.discharge_reactions.value.trim()) {
+        alert("Please enter the Discharge Reactions.");
+        return;
+    }
+    if (!form.recharge_reactions.value.trim()) {
+        alert("Please enter the Recharge Reactions.");
+        return;
+    }
+    if (!form.procedure_a.value.trim()) {
+        alert("Please enter Procedure Part A.");
+        return;
+    }
+    if (!form.procedure_b.value.trim()) {
+        alert("Please enter Procedure Part B.");
+        return;
+    }
+    if (!form.result.value.trim()) {
+        alert("Please enter the Result.");
+        return;
     }
 
-    // ---------- Submit Experiment ----------
-    function submitExperiment() {
-      const form = document.getElementById('exp4-form');
-         const subject = 'chemistry';
-            const experiment_number = 4; // From your database
-            const employee_id = '123';
-      
-      if (!form.aim.value.trim() || !form.chemicals.value.trim() || 
-          !form.principle.value.trim() || !form.result.value.trim() ||
-          !form.discharge_reactions.value.trim() || !form.recharge_reactions.value.trim()) {
-        alert("Please fill all required fields.");
-        return;
-      }
-
-      const apparatusList = Array.from(document.querySelectorAll("#apparatus-dropbox .tool-item"))
+    const apparatusList = Array.from(document.querySelectorAll("#apparatus-dropbox .tool-item"))
         .map(el => el.textContent.trim());
 
-      if (apparatusList.length === 0) {
+    if (apparatusList.length === 0) {
         alert("Please add at least one apparatus.");
         return;
-      }
-
-      const submissionHtml = `
+    }
+    
+    // Create submission HTML
+    const submissionHtml = `
 <style>
   .header-row {
     display: flex;
@@ -512,7 +655,7 @@ session_start();
   }
 </style>
 <div class="header-row">
-   <div><b>Experiment No.:</b> 4</div>
+  <div><b>Experiment No.:</b> 4</div>
   <div><b>Date:</b> ${escapeHtml(form.expDate.value || '')}</div>
 </div>
 <h2 style="text-align:center; margin-top: 0;">DETERMINATION OF STRENGTH OF AN ACID IN Pb-ACID BATTERY</h2>
@@ -572,37 +715,78 @@ session_start();
 
 <h3>Result :</h3><p>${formatTextWithBreaks(form.result.value || '')}</p>`;
 
-     const postData = new URLSearchParams();
-            postData.append('subject', subject);
-            postData.append('experiment_number', experiment_number);
-            postData.append('employee_id', employee_id);
-            postData.append('submission_data', submissionHtml);
+    // Prepare POST data
+    const postData = new URLSearchParams();
+    postData.append('subject', subject);
+    postData.append('experiment_number', experiment_number);
+    postData.append('submission_data', submissionHtml);
 
-            fetch('../../submit_experiment.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: postData.toString()
-            })
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return res.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    alert(data.message);
-                    // Optional: clear form on success
-                    // form.reset();
-                } else {
-                    alert('Error: ' + data.message);
-                }
-            })
-            .catch(err => {
-                console.error('Error:', err);
-                alert('Error submitting experiment. Please check console for details.');
-            });
+    // Add retake parameters
+    if (isRetake === '1' && retakeId) {
+        postData.append('is_retake', '1');
+        postData.append('retake_id', retakeId);
+        postData.append('retake_count', retakeCount);
+        console.log('Submitting retake:', { retakeId, retakeCount });
+    }
+
+    // Show loading state
+    const submitBtn = document.querySelector('button[onclick="submitExperiment()"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Submitting...';
+    submitBtn.disabled = true;
+    
+    console.log('Sending fetch request...');
+    
+    fetch('../../submit_experiment.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: postData.toString()
+    })
+    .then(res => {
+        console.log('Response received, status:', res.status);
+        if (!res.ok) {
+            throw new Error('Network response was not ok: ' + res.status);
         }
-  </script>
+        return res.json();
+    })
+    .then(data => {
+        console.log('Response data:', data);
+        
+        // Reset button
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+        
+        if (data.success) {
+            alert('✅ ' + data.message);
+            
+            // Clear the form after successful submission (for new submissions only)
+            if (!data.is_retake) {
+                clearForm();
+            }
+            
+            if (data.is_retake) {
+                // Redirect to retake page
+                window.location.href = '../../retake_exp.php?retake_success=1';
+            } else {
+                // Show success message and redirect to experiments list
+                setTimeout(() => {
+                    window.location.href = '../../updated_exp.php?subject=Chemistry';
+                }, 1500);
+            }
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    })
+    .catch(err => {
+        console.error('Fetch error:', err);
+        
+        // Reset button
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+        
+        alert('❌ Error submitting experiment. Please check console for details.');
+    });
+}
+</script>
 </body>
 </html>

@@ -1,5 +1,7 @@
 <?php
 session_start();
+require_once __DIR__ . '/../../device_guard.php';
+ensure_desktop_only();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -33,14 +35,34 @@ session_start();
       <div class="exp-header">
         <div style="display:flex;flex-direction:column;">
           <label for="expNo">Experiment No.5</label>
-         <input type="hidden" id="subject" name="subject" value="chemistry">
+         <input type="hidden" id="subject" name="subject" value="Chemistry">
     <input type="hidden" id="experiment_number" name="experiment_number" value="5">
                 </div>
         <div style="display:flex;flex-direction:column;">
           <label for="expDate">Date</label>
           <input type="date" id="expDate" name="expDate" required/>
         </div>
+         <button type="button" id="fullscreenBtn" title="Full Screen" class="fullscreen-btn"style="position:absolute; right:70px;top:70px" onclick="toggleFullScreen()">Full Screen</button>
       </div>
+
+      <?php
+// Check if this is a retake
+$is_retake = isset($_GET['is_retake']) && $_GET['is_retake'] == '1';
+$retake_count = isset($_GET['retake_count']) ? intval($_GET['retake_count']) : 0;
+$attempt_number = $retake_count + 1;
+?>
+
+<?php if ($is_retake): ?>
+<div style="background: #fef3c7; padding: 12px; border-radius: 6px; border-left: 4px solid #f59e0b; margin-bottom: 20px;">
+    <strong>⚠️ Retake Submission - Attempt <?php echo $attempt_number; ?></strong>
+    <p style="margin: 5px 0 0 0; font-size: 0.9rem;">
+        Please correct your previous submission based on the feedback provided.
+        <?php if ($retake_count > 0): ?>
+            This is your <?php echo ($retake_count == 1 ? 'second' : ($retake_count == 2 ? 'third' : ($retake_count+1).'th')); ?> attempt.
+        <?php endif; ?>
+    </p>
+</div>
+<?php endif; ?>
 
       <h2 style="font-size: 30px;">CONDUCTOMETRIC TITRATION (STRONG ACID Vs STRONG BASE)</h2>
 
@@ -202,7 +224,7 @@ session_start();
       <div class="btn-group">
        
         <button type="button" onclick="previewExp()" style="cursor:pointer; background:#007bff; color:#fff; font-weight:600; padding:8px 16px; border-radius:6px; width: fit-content;">Preview</button>
-        <button type="button" onclick="submitExperiment()" style="cursor:pointer; background:#1a347a; color:#fff; font-weight:600; padding:8px 16px; border-radius:6px; width: fit-content;">Submit</button>
+        <button type="button" onclick="submitExperiment()" id="submitBtn" style="cursor:pointer; background:#1a347a; color:#fff; font-weight:600; padding:8px 16px; border-radius:6px; width: fit-content;">Submit</button>
             </div>
     </form>
 
@@ -250,6 +272,33 @@ session_start();
   </div>
 
   <script>
+    // -------- Fullscreen Toggle --------
+function toggleFullScreen() {
+    const elem = document.documentElement;
+    const btn = document.getElementById('fullscreenBtn');
+    if (!document.fullscreenElement) {
+        elem.requestFullscreen().then(() => {
+            btn.textContent = 'Exit Full Screen';
+            btn.title = 'Exit Full Screen';
+        });
+    } else {
+        document.exitFullscreen().then(() => {
+            btn.textContent = 'Full Screen';
+            btn.title = 'Full Screen';
+        });
+    }
+}
+
+document.addEventListener('fullscreenchange', function() {
+    const btn = document.getElementById('fullscreenBtn');
+    if (!document.fullscreenElement) {
+        btn.textContent = 'Full Screen';
+        btn.title = 'Full Screen';
+    } else {
+        btn.textContent = 'Exit Full Screen';
+        btn.title = 'Exit Full Screen';
+    }
+});
     let titrationChart = null;
 
         function press(value) {
@@ -843,6 +892,18 @@ function formatTextWithBreaks(text) {
       return rows;
     }
 
+    document.addEventListener("cheking tab switces", () => {
+  if (document.hidden) { console.log("tab_switched");
+  }
+});
+
+
+
+document.addEventListener("fullscreen", () => {
+  if (!document.fullscreenElement) {console.log("exit full screen");
+  }
+});
+
     // ---------- Preview ----------
 function previewExp() {
   const form = document.getElementById('exp5-form');
@@ -966,75 +1027,93 @@ function previewExp() {
   win.document.write('</body></html>');
   win.document.close();
 }
-    // ---------- Submit Experiment ----------
-     function submitExperiment() { 
-        const form = document.getElementById('exp5-form');
-         const subject = 'chemistry';
-            const experiment_number = 5; // From your database
-            const employee_id = '123';
 
-  // Validation
-  
-  
-  if (!form.aim.value.trim() || !form.chemicals.value.trim() || 
-      !form.principle.value.trim() || !form.result.value.trim()) {
-    alert("Please fill all required fields.");
-    return;
-  }
-
-  const apparatusList = Array.from(document.querySelectorAll("#apparatus-dropbox .tool-item"))
-    .map(el => el.textContent.trim());
-
-  if (apparatusList.length === 0) {
-    alert("Please add at least one apparatus.");
-    return;
-  }
-
-  // Collect graph data
-  const volumes = [];
-  const conductances = [];
-  
-  for (let i = 1; i <= 20; i++) {
-    const volumeInput = document.querySelector(`input[name="est_v${i}"]`);
-    const conductanceInput = document.querySelector(`input[name="est_conductance${i}"]`);
+// ---------- Confirmation Dialog ----------
+async function confirmSubmit() {
+    return new Promise((resolve) => {
+        const confirmed = confirm("Do you really want to submit this experiment?\nPlease review all your answers before submitting.\nClick OK to submit ");
+        resolve(confirmed);
+    });
+}
+   
+     // ---------- Submit Experiment ----------
+async function submitExperiment() {
+    console.log('Submit button clicked - starting submission');
     
-    if (volumeInput && volumeInput.value && conductanceInput && conductanceInput.value) {
-      volumes.push(parseFloat(volumeInput.value));
-      conductances.push(parseFloat(conductanceInput.value));
+    // Show confirmation dialog
+    const shouldSubmit = await confirmSubmit();
+    if (!shouldSubmit) {
+        console.log('Submission cancelled by user');
+        return;
     }
-  }
+    
+    const form = document.getElementById('exp5-form');
+    if (!form) {
+        alert('Error: Form not found!');
+        return;
+    }
 
-  // Create print-style graph for submission
-  let graphDataURL = '';
-  if (volumes.length >= 2) {
-    graphDataURL = createPrintStyleGraph(volumes, conductances);
-  }
+    const subject = 'Chemistry';
+    const experiment_number = 5;
 
-  const submissionHtml = `
-<style>
-  .header-row {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 15px;
-    font-weight: 400;
-    font-size: 1rem;
-    color: #000000;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 15px;
-  }
-  table, th, td {
-    border: 1px solid #000;
-  }
-  th, td {
-    padding: 8px 10px;
-    text-align: center;
-  }
-</style>
+    // Get retake parameters if this is a retake
+    const urlParams = new URLSearchParams(window.location.search);
+    const retakeId = urlParams.get('retake_id');
+    const isRetake = urlParams.get('is_retake');
+    const retakeCount = urlParams.get('retake_count') || 0;
+
+    // Validation
+    if (!form.expDate.value.trim()) {
+        alert("Please enter Date.");
+        return;
+    }
+
+    if (!form.aim.value.trim() || !form.chemicals.value.trim() || 
+        !form.principle.value.trim() || !form.result.value.trim() ||
+        !form.procedure_a.value.trim() || !form.procedure_b.value.trim()) {
+        alert("Please fill all required fields.");
+        return;
+    }
+
+    const apparatusList = Array.from(document.querySelectorAll("#apparatus-dropbox .tool-item"))
+        .map(el => el.textContent.trim());
+
+    if (apparatusList.length === 0) {
+        alert("Please add at least one apparatus.");
+        return;
+    }
+
+    // Get current graph as image
+    const canvas = document.getElementById('titrationChart');
+    let graphDataURL = '';
+    
+    // Collect graph data
+    const volumes = [];
+    const conductances = [];
+    
+    for (let i = 1; i <= 20; i++) {
+        const volumeInput = document.querySelector(`input[name="est_v${i}"]`);
+        const conductanceInput = document.querySelector(`input[name="est_conductance${i}"]`);
+        
+        if (volumeInput && volumeInput.value && conductanceInput && conductanceInput.value) {
+            volumes.push(parseFloat(volumeInput.value));
+            conductances.push(parseFloat(conductanceInput.value));
+        }
+    }
+    
+    // Create graph if we have enough data
+    if (volumes.length >= 2) {
+        graphDataURL = createPrintStyleGraph(volumes, conductances);
+    }
+
+    const submissionHtml = `<style>
+    .header-row { display: flex; justify-content: space-between; margin-bottom: 15px; font-weight: 400; font-size: 1rem; color: #000000; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    table, th, td { border: 1px solid #000; }
+    th, td { padding: 8px 10px; text-align: center; }
+  </style>
 <div class="header-row">
-    <div><b>Experiment No.:</b> 3</div>
+  <div><b>Experiment No.:</b> 5</div>
   <div><b>Date:</b> ${escapeHtml(form.expDate.value || '')}</div>
 </div>
 <h2 style="text-align:center; margin-top: 0;">CONDUCTOMETRIC TITRATION (STRONG ACID Vs STRONG BASE)</h2>
@@ -1044,7 +1123,8 @@ function previewExp() {
 <p><b>Chemicals Required:</b> ${formatTextWithBreaks(form.chemicals.value || '')}</p>
 <p><b>Principle:</b> ${formatTextWithBreaks(form.principle.value || '')}</p>
 
-<h3>Procedure - Part A: Standardization of NaOH</h3>
+<h3>Procedure : </h3>
+<p><b> Part A: Standardization of NaOH</b></p>
 <p>${formatTextWithBreaks(form.procedure_a.value || '')}</p>
 
 <table border="1" cellspacing="0" cellpadding="5" style="width:100%; border-collapse: collapse;">
@@ -1055,23 +1135,27 @@ function previewExp() {
   <tr><td>3</td><td>${escapeHtml(form.std_v3.value || '')}</td><td>${escapeHtml(form.std_br_initial3.value || '')}</td><td>${escapeHtml(form.std_br_final3.value || '')}</td><td>${escapeHtml(form.std_vol_k2_3.value || '')}</td></tr>
 </table>
 
-<h3>Calculations :</h3>
-<div>
-  N₁: Normality of Oxalic Acid solution = ${escapeHtml(form.calc_std_n1.value || '')} N<br><br>
-  N₂: Normality of NaOH solution = ${escapeHtml(form.calc_std_n2.value || '')}<br><br>
-  V₁: Volume of Oxalic Acid solution = ${escapeHtml(form.calc_std_v1.value || '')}<br><br>
-  V₂: Volume of NaOH solution = ${escapeHtml(form.calc_std_v2.value || '')}<br><br>
-  Formula: N₁V₁ = N₂V₂<br><br>
-  N₂ = (N₁V₁) / V₂ = ${escapeHtml(form.calc_std_n2_calc.value || '')}<br><br>
-  Normality of NaOH solution (N₂) is ${escapeHtml(form.calc_std_n2_final.value || '')} N.
-</div>
-
-<h3>Procedure - Part B: Estimation of HCl</h3>
+<h3>Procedure :</h3>
+<p><b>Part B: Estimation of HCl</b></p>
 <p>${formatTextWithBreaks(form.procedure_b.value || '')}</p>
 
 <table border="1" cellspacing="0" cellpadding="5" style="width:100%; border-collapse: collapse;">
-  <tr><th>S.No</th><th>Volume of NaOH Added (ml)</th><th>Observed Conductance (µS/cm)</th><th>Corrected Conductance<br>G = ((u + v)/u)c</th></tr>
-  ${generateTableRowsForPreview()}
+  <tr><th>S.No</th><th>Volume of NaOH Added (ml)</th><th>Observed Conductance (µS/cm)</th><th>Corrected Conductance</th></tr>
+  ${(() => {
+    let rows = '';
+    for (let i = 1; i <= 20; i++) {
+      const volInput = document.querySelector(`input[name="est_v${i}"]`);
+      const condInput = document.querySelector(`input[name="est_conductance${i}"]`);
+      const corrInput = document.querySelector(`input[name="est_vol_k2_${i}"]`);
+      const vol = volInput ? volInput.value : '';
+      const cond = condInput ? condInput.value : '';
+      const corr = corrInput ? corrInput.value : '';
+      if (vol || cond) {
+        rows += `<tr><td>${i}</td><td>${escapeHtml(vol)}</td><td>${escapeHtml(cond)}</td><td>${escapeHtml(corr)}</td></tr>`;
+      }
+    }
+    return rows;
+  })()}
 </table>
 
 <div style="margin: 25px 0; text-align: center;">
@@ -1101,38 +1185,93 @@ function previewExp() {
 
 <h3>Result :</h3><p>${formatTextWithBreaks(form.result.value || '')}</p>`;
 
-  const postData = new URLSearchParams();
-            postData.append('subject', subject);
-            postData.append('experiment_number', experiment_number);
-            postData.append('employee_id', employee_id);
-            postData.append('submission_data', submissionHtml);
+    const postData = new URLSearchParams();
+    postData.append('subject', subject);
+    postData.append('experiment_number', experiment_number);
+    postData.append('submission_data', submissionHtml);
 
-            fetch('../../submit_experiment.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: postData.toString()
-            })
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return res.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    alert(data.message);
-                    // Optional: clear form on success
-                    // form.reset();
-                } else {
-                    alert('Error: ' + data.message);
-                }
-            })
-            .catch(err => {
-                console.error('Error:', err);
-                alert('Error submitting experiment. Please check console for details.');
-            });
-}
+    // Add retake parameters if this is a retake
+    if (isRetake === '1' && retakeId) {
+        postData.append('is_retake', '1');
+        postData.append('retake_id', retakeId);
+        postData.append('retake_count', retakeCount);
+        console.log('Submitting retake:', { retakeId, retakeCount });
+    }
+
+    // Show loading state
+    const submitBtn = document.querySelector('button[onclick="submitExperiment()"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Submitting...';
+    submitBtn.disabled = true;
+
+    console.log('Sending fetch request...');
+
+    fetch('../../submit_experiment.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: postData.toString()
+    })
+    .then(res => {
+        console.log('Response received, status:', res.status);
+        if (!res.ok) {
+            throw new Error('Network response was not ok: ' + res.status);
+        }
+        return res.json();
+    })
+    .then(data => {
+        console.log('Response data:', data);
         
-  </script>
+        // Reset button
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+        
+        if (data.success) {
+            alert(data.message);
+            
+            // Clear the form
+            form.reset();
+            // Clear apparatus dropbox
+            const dropZone = document.getElementById('apparatus-dropbox');
+            const placeholder = document.getElementById('apparatus-placeholder');
+            if (dropZone) {
+                const toolItems = dropZone.querySelectorAll('.tool-item');
+                toolItems.forEach(item => item.remove());
+                if (placeholder) {
+                    placeholder.style.display = 'inline';
+                }
+            }
+            // Clear graph
+            if (titrationChart) {
+                titrationChart.destroy();
+                titrationChart = null;
+            }
+            document.getElementById('titrationChart').style.display = 'none';
+            document.getElementById('graph-placeholder').style.display = 'block';
+            document.getElementById('endpoint-info').style.display = 'none';
+            
+            if (data.is_retake) {
+                // Redirect back to retake page with success message
+                window.location.href = '../../retake_exp.php?retake_success=1';
+            } else {
+                // Show success message and redirect to experiments list
+                setTimeout(() => {
+                    window.location.href = '../../updated_exp.php?subject=Chemistry';
+                }, 1500);
+            }
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(err => {
+        console.error('Fetch error:', err);
+        
+        // Reset button
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+        
+        alert('Error submitting experiment. Please try again.');
+    });
+}
+</script>
 </body>
 </html>

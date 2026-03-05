@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Lab Record Digitalization - Contributors (Mobile Ready)</title>
+    <!-- Premium Sans Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        body {
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            display: flex;
+            position: relative;
+        }
+
+        /* --- BACKGROUND VIDEO --- */
+        .video-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            object-fit: cover;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        /* Overlay to ensure text readability over the video */
+        .video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: none;
+            z-index: 1;
+        }
+
+        /* --- SVG Icons Utility --- */
+        .icon { width: 16px; height: 16px; fill: currentColor; }
+
+        /* LEFT PANEL – transforms scale on mobile */
+        .left-panel {
+            width: 450px;
+            height: 100%;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            z-index: 10;
+            perspective: 800px;
+        }
+
+        .center-panel {
+            flex: 1;
+            height: 100%;
+            z-index: 10;
+        }
+
+        .right-panel {
+            width: 450px;
+            height: 100%;
+            padding: 40px 40px 40px 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            z-index: 10;
+            color: #ffffff;
+            perspective: 800px;
+        }
+
+        /* --- LEFT PANEL: GLASS CARD WITH LEFT TILT --- */
+        .single-card-container {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            padding: 20px;
+            width: 100%;
+            height: 75vh;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+
+            transform-style: preserve-3d;
+            transform: rotateY(30deg);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+            
+            transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
+        }
+
+        /* Content fade animation */
+        .card-content {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            gap: 15px;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .fade-out-content {
+            opacity: 0;
+        }
+
+        .fade-in-content {
+            opacity: 1;
+        }
+
+        /* Top Row: Name and Icon */
+        .card-header {
+            display: flex;
+            gap: 10px;
+            height: 50px;
+        }
+        
+        .card-name-box {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            padding-left: 20px;
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 1rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .card-icon-box {
+            width: 50px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #ffffff;
+        }
+
+        .card-img-box {
+            height: 200px;
+            width: 200px;
+            margin: 0 auto;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .card-img-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            opacity: 0.9;
+            transition: opacity 0.3s ease;
+        }
+
+        .card-img-box img:hover {
+            opacity: 0.7;
+        }
+
+        /* Description Box */
+        .card-desc-box {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            color: #ffffff;
+            font-size: 0.8rem;
+            line-height: 1.5;
+            text-align: center;
+            font-weight: 500;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            letter-spacing: 0.5px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        /* CONTACTS CONTAINER - Inside profile card */
+        .contacts-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            margin-top: 5px;
+        }
+
+        .contacts-title {
+            font-size: 0.9rem;
+            letter-spacing: 2px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 12px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            display: inline-block;
+            text-transform: uppercase;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .contacts-icons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .contact-btn {
+            width: 45px;
+            height: 45px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+        }
+
+        .contact-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-3px);
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.3);
+        }
+
+        .contact-btn svg {
+            width: 22px;
+            height: 22px;
+            fill: #ffffff;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+        }
+        
+        /* RIGHT PANEL */
+        .right-panel {
+            width: 450px;
+            height: 100%;
+            padding: 40px 40px 40px 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            z-index: 10;
+            color: #ffffff;
+            perspective: 800px;
+        }
+
+        /* --- RIGHT PANEL: SINGLE GLASS CONTAINER --- */
+        .right-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 25px;
+            width: 100%;
+            height: 75vh;
+            transform-style: preserve-3d;
+            transform: rotateY(-25deg);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+            transition: transform 0.4s ease-in-out;
+        }
+
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .level-block {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            line-height: 1;
+        }
+
+        .level-block h1 { 
+            font-size: 5rem; 
+            font-weight: 300; 
+            letter-spacing: -2px; 
+            color: #ffffff;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        
+        .level-label { 
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            color: #fff; 
+            font-size: 0.7rem; 
+            font-weight: 700; 
+            letter-spacing: 3px; 
+            padding: 4px 12px; 
+            margin-top: 5px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .name-block h2 { 
+            font-size: 1.8rem; 
+            font-weight: 800; 
+            letter-spacing: 1px; 
+            text-transform: uppercase; 
+            margin-bottom: 5px;
+            color: #ffffff;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        
+        .name-block p { 
+            font-size: 0.8rem; 
+            font-weight: 600; 
+            color: rgba(255, 255, 255, 0.8); 
+            text-transform: uppercase; 
+            letter-spacing: 1.5px;
+        }
+
+        /* Stats Container */
+        .stats-container { 
+            margin-top: 20px;
+        }
+        
+        .stat-row { 
+            display: flex; 
+            align-items: center; 
+            margin-bottom: 65px; 
+            font-size: 0.8rem; 
+            font-weight: 600; 
+            color: #ffffff;
+        }
+        
+        .stat-label { 
+            width: 100px; 
+            letter-spacing: 1.5px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .stat-bar-bg { 
+            flex: 1; 
+            height: 4px; 
+            background: rgba(255, 255, 255, 0.2); 
+            margin: 0 15px; 
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .stat-bar-fill { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            height: 100%; 
+            background: white;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1); 
+        }
+        
+        .stat-value { 
+            width: 40px; 
+            text-align: right;
+            font-weight: 700;
+            color: #ffffff;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        /* Navigation Arrows */
+        .nav-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 30;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .nav-arrow:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-50%) scale(1.1);
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+        }
+
+        .nav-arrow:active {
+            transform: translateY(-50%) scale(0.95);
+        }
+
+        .nav-arrow.left {
+            left: 20px;
+        }
+
+        .nav-arrow.right {
+            right: 20px;
+        }
+
+        .nav-arrow svg {
+            width: 24px;
+            height: 24px;
+            fill: #ffffff;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+        }
+
+        /* Contributor counter */
+        .contributor-counter {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 30;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 30px;
+            padding: 8px 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            color: #ffffff;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        /* ===== MOBILE RESPONSIVENESS ===== */
+        @media screen and (max-width: 900px) {
+            body {
+                flex-direction: column;
+                overflow-y: auto;   /* allow scrolling if needed, but we keep main structure */
+                overflow-x: hidden;
+                min-height: 100vh;
+                height: auto;
+            }
+            
+            /* Re-stacking panels */
+            .left-panel, .center-panel, .right-panel {
+                width: 100%;
+                height: auto;
+                padding: 15px 20px;
+            }
+            
+            .left-panel {
+                order: 1;
+                justify-content: flex-start;
+                perspective: none;
+                padding-bottom: 5px;
+            }
+            
+            .center-panel {
+                order: 2;
+                min-height: 30vh;  /* video visible area */
+                height: 35vh;
+                flex: none;
+                padding: 0 20px;
+            }
+            
+            .right-panel {
+                order: 3;
+                justify-content: flex-start;
+                perspective: none;
+                padding: 5px 20px 20px 20px;
+            }
+            
+            /* reset tilts for mobile */
+            .single-card-container {
+                transform: rotateY(0deg) scale(0.98);
+                height: auto;
+                min-height: 480px;
+                margin: 0 auto;
+                max-width: 450px;
+            }
+            
+            .right-container {
+                transform: rotateY(0deg);
+                height: auto;
+                min-height: 300px;
+                max-width: 500px;
+                margin: 0 auto;
+            }
+            
+            /* adjust header and stats spacing */
+            .profile-header {
+                flex-wrap: wrap;
+                gap: 15px;
+                justify-content: center;
+            }
+            
+            .level-block h1 {
+                font-size: 4rem;
+            }
+            
+            .stat-row {
+                margin-bottom: 30px;
+            }
+            
+            /* video background adjustments */
+            .video-background {
+                height: 100%;
+                width: 100%;
+                object-fit: cover;
+            }
+            
+            /* make arrows slightly smaller & reposition */
+            .nav-arrow {
+                width: 44px;
+                height: 44px;
+                top: 50%;
+                z-index: 40;
+            }
+            
+            .nav-arrow.left {
+                left: 8px;
+            }
+            
+            .nav-arrow.right {
+                right: 8px;
+            }
+            
+            .contributor-counter {
+                bottom: 10px;
+                font-size: 0.8rem;
+                padding: 6px 16px;
+            }
+            
+            /* bottom project footer smaller margin */
+            div[style*="bottom: 20px; right: 40px;"] {
+                bottom: 10px !important;
+                right: 20px !important;
+                opacity: 0.5;
+            }
+        }
+
+        /* small mobile touches */
+        @media screen and (max-width: 480px) {
+            .card-img-box {
+                width: 160px;
+                height: 160px;
+            }
+            
+            .card-name-box {
+                font-size: 0.8rem;
+                padding-left: 12px;
+            }
+            
+            .profile-header {
+                gap: 10px;
+            }
+            
+            .level-block h1 {
+                font-size: 3.2rem;
+            }
+            
+            .name-block h2 {
+                font-size: 1.3rem;
+            }
+            
+            .right-container {
+                padding: 18px;
+            }
+            
+            .stat-label {
+                width: 80px;
+                font-size: 0.7rem;
+            }
+            
+            .contacts-icons {
+                gap: 8px;
+            }
+            
+            .contact-btn {
+                width: 40px;
+                height: 40px;
+            }
+        }
+
+        /* Fix landscape orientation on mobile */
+        @media screen and (max-height: 600px) and (orientation: landscape) {
+            .left-panel, .right-panel {
+                padding: 10px 15px;
+            }
+            .single-card-container {
+                min-height: 380px;
+            }
+            .card-img-box {
+                width: 130px;
+                height: 130px;
+            }
+            .right-container {
+                min-height: 240px;
+            }
+            .stat-row {
+                margin-bottom: 15px;
+            }
+            .nav-arrow {
+                top: 40%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Background Video -->
+    <video id="bgVideo" class="video-background" autoplay loop muted playsinline></video>
+    <div class="video-overlay"></div>
+
+    <!-- Navigation Arrows -->
+    <div class="nav-arrow left" id="prevArrow" title="Previous Contributor">
+        <svg viewBox="0 0 24 24">
+            <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+        </svg>
+    </div>
+    <div class="nav-arrow right" id="nextArrow" title="Next Contributor">
+        <svg viewBox="0 0 24 24">
+            <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+        </svg>
+    </div>
+
+   
+
+    <!-- LEFT PANEL: Glass Card with Left Tilt (mobile tilt removed) -->
+    <aside class="left-panel">
+        <div class="single-card-container" id="profileCard">
+            <div class="card-content" id="cardContent">
+                <!-- Top: Name -->
+                <div class="card-header">
+                    <div class="card-name-box" id="cardName">CONTRIBUTOR</div>
+                    <div class="card-icon-box">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm0 2.18l6 2.25v4.66c0 4.14-2.58 8.04-6 9.1-3.42-1.06-6-4.96-6-9.1V6.43l6-2.25z"/></svg>
+                    </div>
+                </div>
+                
+                <!-- Middle: Profile Image -->
+                <div class="card-img-box">
+                    <img id="cardImg" src="" alt="Profile">
+                </div>
+
+                <!-- Description -->
+                <div class="card-desc-box" id="cardDesc">
+                    Description goes here...
+                </div>
+
+                <!-- Contact Container -->
+                <div class="contacts-container" id="contactsContainer">
+                    <div class="contacts-title">CONTACT</div>
+                    <div class="contacts-icons" id="contactsIcons">
+                        <!-- Contacts will be dynamically added here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- CENTER PANEL: Video area (will show video through background) but we keep it for spacing -->
+    <main class="center-panel"></main>
+
+    <!-- RIGHT PANEL: Single Container with Stats (tilt removed on mobile) -->
+    <aside class="right-panel">
+        <div class="right-container">
+            <div class="profile-header">
+                <div class="level-block">
+                    <h1 id="rightLevel">95</h1>
+                    <span class="level-label">SKILL %</span>
+                </div>
+                <div class="name-block">
+                    <h2 id="rightName">KARUNAKAR</h2>
+                    <p id="rightRole">Team Lead</p>
+                </div>
+            </div>
+
+            <div class="stats-container" id="statsContainer">
+                <!-- Stats will be dynamically generated -->
+            </div>
+        </div>
+    </aside>
+
+    <!-- Contributor Counter -->
+    <div class="contributor-counter" id="contributorCounter">
+        <span id="currentContributorDisplay">1</span> / <span id="totalContributors">5</span>
+    </div>
+
+    <!-- Project Footer -->
+    <div style="position: absolute; bottom: 20px; right: 40px; z-index: 20; text-align: right; opacity: 0.6;">
+        <p style="font-size: 0.7rem; letter-spacing: 2px;">LAB RECORD DIGITALIZATION · DEV TEAM · 2026</p>
+    </div>
+
+    <script>
+        // Array of contributors with their own unique skills
+        const contributors = [
+            {
+                name: "Karunakar",
+                role: "Team Lead",
+                desc: "Specializes in backend architecture, APIs, and database optimization. Leading the lab record digitalization project.",
+                img: "karunakar.jpeg", 
+                video: "karunakar video.mp4",
+                level: 95,
+                skills: [
+                    { name: "PHP", value: 98 },
+                    { name: "MySQL", value: 98 },
+                    { name: "API", value: 95 },
+                    { name: "Python", value: 85 },
+                    { name: "Java", value: 80 }
+                ],
+                github: "https://github.com/karunakar", 
+                linkedin: "https://linkedin.com/in/karunakar"
+            },
+             {
+                name: "Durga Siva",
+                role: "Full Stack Dev",
+                desc: "Skilled in front-end and PHP back-end development, database management, and server maintenance.",
+                img: "siva.jpg",
+                video: "siva video.mp4",
+                level: 88,
+                skills: [
+                    { name: "Frontend", value: 90 },
+                    { name: "Backend", value: 90 },
+                    { name: "UI/UX", value: 80 },
+                    { name: "App Development", value: 80 },
+                    { name: "API", value: 85 }
+                ],
+                github: "https://github.com/KarriDurgaSiva295", 
+                linkedin: "https://www.linkedin.com/in/karri-durga-siva-394111333"
+            },
+            {
+                name: "Vasavi",
+                role: "Backend Dev",
+                desc: "Full Stack Developer passionate about building intuitive interfaces for lab record management system.",
+                img: "vasavi.jpg",
+                video: "vasavi video.mp4",
+                level: 88,
+                skills: [
+                    { name: "PHP", value: 75 },
+                    { name: "MySQL", value: 90 },
+                    { name: "JavaScript", value: 80 },
+                    { name: "HTML", value: 80 },
+                    { name: "CSS", value: 85 }
+                ],
+                github: "https://github.com/vasavi297", 
+                linkedin: "https://www.linkedin.com/in/vasavi29"
+            },
+            {
+                name: "Anya Sree",
+                role: "Full Stack Dev",
+                desc: "A technology enthusiast passionate about learning new innovations and building creative solutions.",
+                img: "anya.jpeg",
+                video: "anya video.mp4",
+                level: 92,
+                skills: [
+                    { name: "PHP", value: 98 },
+                    { name: "MySQL", value: 98 },
+                    { name: "HTML", value: 88 },
+                    { name: "CSS", value: 85 },
+                    { name: "JS", value: 80 }
+                ],
+                github: "https://github.com/Sree-8639", 
+                linkedin: "https://linkedin.com/in/anya-sree89"
+            },
+            {
+                name: "Sneha Latha Reddy",
+                role: "Full Stack Dev",
+                desc: "Full Stack Developer skilled in Java, Python, Flask, and web technologies, focused on building secure and scalable applications.",
+                img: "Sneha.png",
+                video: "sneha video.mp4",
+                level: 87,
+                skills: [
+                    { name: "MySQL", value: 98 },
+                    { name: "PHP", value: 88 },
+                    { name: "Java", value: 92 },
+                    { name: "Python", value: 85 },
+                    { name: "JS", value: 80 }
+                ],
+                github: "https://github.com/snehalathareddy28", 
+                linkedin: "https://www.linkedin.com/in/muddireddy-sneha-latha-reddy-252566353"
+            },
+            {
+                name: "Navadeep",
+                role: "DevOps Eng",
+                desc: "Manages deployment, CI/CD pipelines, and cloud infrastructure for the lab record system.",
+                img: "siddharth.jpg",
+                video: "siddharth video.mp4",
+                level: 90,
+                skills: [
+                    { name: "Docker", value: 95 },
+                    { name: "Kubernetes", value: 88 },
+                    { name: "AWS", value: 92 },
+                    { name: "Jenkins", value: 90 },
+                    { name: "Linux", value: 94 }
+                ],
+                github: "https://github.com/siddharth", 
+                linkedin: "https://linkedin.com/in/siddharth"
+            },
+             {
+                name: "Satyanarayana",
+                role: "Frontend Dev",
+                desc: "Passionate about AI/ML and Data Structures & Algorithms, focused on strong problem-solving and building AI-driven real-world solutions.",
+                img: "satya.jpeg",
+                video: "satya video.mp4",
+                level: 90,
+                skills: [
+                    { name: "HTML", value: 95 },
+                    { name: "CSS", value: 88 },
+                    { name: "JS", value: 92 },
+                    { name: "Django", value: 90 },
+                    { name: "MySQL", value: 94 }
+                ],
+                github: "https://github.com/satyanarayana2712", 
+                linkedin: "https://www.linkedin.com/in/satyanarayana2712",
+             
+            },
+             {
+                name: "Hemanth",
+                role: "DevOps Eng",
+                desc: "Manages deployment, CI/CD pipelines, and cloud infrastructure for the lab record system.",
+                img: "siddharth.jpg",
+                video: "siddharth video.mp4",
+                level: 90,
+                skills: [
+                    { name: "Docker", value: 95 },
+                    { name: "Kubernetes", value: 88 },
+                    { name: "AWS", value: 92 },
+                    { name: "Jenkins", value: 90 },
+                    { name: "Linux", value: 94 }
+                ],
+                github: "https://github.com/siddharth", 
+                linkedin: "https://linkedin.com/in/siddharth"
+            },
+             {
+                name: "Sravani",
+                role: "Frontend Dev",
+                desc: "Manages deployment, CI/CD pipelines, and cloud infrastructure for the lab record system.",
+                img: "Sravani.jpeg",
+                video: "sravani video.mp4",
+                level: 90,
+                skills: [
+                    { name: "HTML", value: 90 },
+                    { name: "CSS", value: 90 },
+                    { name: "JS", value: 90 },
+                    { name: "UI/UX", value: 85},
+                    { name: "ML", value: 70 }
+                ],
+                github: "https://github.com/RajahmundrySravani", 
+                linkedin: "https://www.linkedin.com/in/sravani-rajahmundry-388540347"
+            },
+             {
+                name: "Jhansi",
+                role: "DevOps Eng",
+                desc: "Manages deployment, CI/CD pipelines, and cloud infrastructure for the lab record system.",
+                img: "jhansi.jpeg",
+                video: "jhansi video.mp4",
+                level: 90,
+                skills: [
+                    { name: "Docker", value: 95 },
+                    { name: "Kubernetes", value: 88 },
+                    { name: "AWS", value: 92 },
+                    { name: "Jenkins", value: 90 },
+                    { name: "Linux", value: 94 }
+                ],
+                github: "https://github.com/siddharth", 
+                linkedin: "https://linkedin.com/in/siddharth"
+            }
+        ];
+
+        let currentIndex = 0;
+        let isUpdating = false;
+        let autoRotateInterval;
+        
+        // DOM Elements
+        const cardContent = document.getElementById('cardContent');
+        const cardName = document.getElementById('cardName');
+        const cardImg = document.getElementById('cardImg');
+        const cardDesc = document.getElementById('cardDesc');
+        const bgVideo = document.getElementById('bgVideo');
+        const prevArrow = document.getElementById('prevArrow');
+        const nextArrow = document.getElementById('nextArrow');
+        const currentContributorDisplay = document.getElementById('currentContributorDisplay');
+        const totalContributors = document.getElementById('totalContributors');
+        const statsContainer = document.getElementById('statsContainer');
+
+        // Set total contributors
+        totalContributors.textContent = contributors.length;
+
+        function navigateContributor(direction) {
+            if (isUpdating) return;
+            
+            // Clear auto-rotate interval
+            clearInterval(autoRotateInterval);
+            
+            if (direction === 'next') {
+                currentIndex = (currentIndex + 1) % contributors.length;
+            } else if (direction === 'prev') {
+                currentIndex = (currentIndex - 1 + contributors.length) % contributors.length;
+            }
+            
+            updateUI();
+            
+            // Restart auto-rotate
+            startAutoRotate();
+        }
+
+        function generateStatsHTML(skills) {
+            let html = '';
+            skills.forEach(skill => {
+                html += `
+                    <div class="stat-row">
+                        <span class="stat-label">${skill.name}</span>
+                        <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: ${skill.value}%"></div></div>
+                        <span class="stat-value">${skill.value}</span>
+                    </div>
+                `;
+            });
+            return html;
+        }
+
+        function updateUI() {
+            if (isUpdating) return;
+            isUpdating = true;
+
+            const c = contributors[currentIndex];
+
+            // Update counter
+            currentContributorDisplay.textContent = currentIndex + 1;
+
+            // Fade out content
+            cardContent.classList.add('fade-out-content');
+            cardContent.classList.remove('fade-in-content');
+            bgVideo.style.opacity = 0;
+
+            setTimeout(() => {
+                // Update Left Card Content
+                cardName.textContent = c.name;
+                cardImg.src = c.img;
+                cardDesc.textContent = c.desc;
+
+                // Update Background Video
+                bgVideo.src = c.video;
+                bgVideo.play();
+
+                // Update Right Panel Stats & Info
+                document.getElementById('rightLevel').textContent = c.level;
+                document.getElementById('rightName').textContent = c.name;
+                document.getElementById('rightRole').textContent = c.role;
+
+                // Generate stats dynamically based on contributor's skills
+                statsContainer.innerHTML = generateStatsHTML(c.skills);
+
+                // Update Contact Icons (unique for each contributor)
+                document.getElementById('contactsIcons').innerHTML = `
+                    <a href="${c.github}" target="_blank" class="contact-btn" title="GitHub">
+                        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.58 2 12.26c0 4.48 2.87 8.28 6.84 9.63.5.09.68-.22.68-.48 0-.24-.01-.87-.01-1.7-2.78.62-3.37-1.36-3.37-1.36-.45-1.18-1.1-1.5-1.1-1.5-.9-.63.07-.62.07-.62 1 .07 1.53 1.05 1.53 1.05.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.7 0 0 .84-.28 2.75 1.05A9.38 9.38 0 0 1 12 6.84c.85.004 1.71.12 2.51.35 1.91-1.33 2.75-1.05 2.75-1.05.55 1.4.2 2.44.1 2.7.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.07.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.58.69.48A10.01 10.01 0 0 0 22 12.26C22 6.58 17.52 2 12 2z"/></svg>
+                    </a>
+                    <a href="${c.linkedin}" target="_blank" class="contact-btn" title="LinkedIn">
+                        <svg viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+                    </a>
+                `;
+
+                // Fade in content
+                cardContent.classList.remove('fade-out-content');
+                cardContent.classList.add('fade-in-content');
+                bgVideo.style.opacity = 1;
+                
+                isUpdating = false;
+
+            }, 300);
+        }
+
+        function startAutoRotate() {
+            autoRotateInterval = setInterval(() => {
+                if (!isUpdating) {
+                    currentIndex = (currentIndex + 1) % contributors.length;
+                    updateUI();
+                }
+            }, 7000);
+        }
+
+        // Event Listeners for arrows
+        prevArrow.addEventListener('click', () => navigateContributor('prev'));
+        nextArrow.addEventListener('click', () => navigateContributor('next'));
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') {
+                navigateContributor('prev');
+            } else if (e.key === 'ArrowRight') {
+                navigateContributor('next');
+            }
+        });
+
+        // Initialize first display
+        updateUI();
+        
+        // Start auto-rotate
+        startAutoRotate();
+
+    </script>
+</body>
+</html>

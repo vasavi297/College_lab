@@ -1,5 +1,7 @@
 <?php
 session_start();
+require_once __DIR__ . '/../../device_guard.php';
+ensure_desktop_only();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -34,14 +36,34 @@ session_start();
       <div class="exp-header">
         <div style="display:flex;flex-direction:column;">
           <label for="expNo">Experiment No.6</label>
-          <input type="hidden" id="subject" name="subject" value="chemistry">
+          <input type="hidden" id="subject" name="subject" value="Chemistry">
     <input type="hidden" id="experiment_number" name="experiment_number" value="6">
                 </div>
         <div style="display:flex;flex-direction:column;">
           <label for="expDate">Date</label>
           <input type="date" id="expDate" name="expDate" />
         </div>
+         <button type="button" id="fullscreenBtn" title="Full Screen" class="fullscreen-btn"style="position:absolute; right:70px;top:70px" onclick="toggleFullScreen()">Full Screen</button>
       </div>
+
+      <?php
+// Check if this is a retake
+$is_retake = isset($_GET['is_retake']) && $_GET['is_retake'] == '1';
+$retake_count = isset($_GET['retake_count']) ? intval($_GET['retake_count']) : 0;
+$attempt_number = $retake_count + 1;
+?>
+
+<?php if ($is_retake): ?>
+<div style="background: #fef3c7; padding: 12px; border-radius: 6px; border-left: 4px solid #f59e0b; margin-bottom: 20px;">
+    <strong>⚠️ Retake Submission - Attempt <?php echo $attempt_number; ?></strong>
+    <p style="margin: 5px 0 0 0; font-size: 0.9rem;">
+        Please correct your previous submission based on the feedback provided.
+        <?php if ($retake_count > 0): ?>
+            This is your <?php echo ($retake_count == 1 ? 'second' : ($retake_count == 2 ? 'third' : ($retake_count+1).'th')); ?> attempt.
+        <?php endif; ?>
+    </p>
+</div>
+<?php endif; ?>
 
       <h2 style="font-size: 30px;">CONDUCTOMETRIC TITRATION (WEAK ACID Vs STRONG BASE)</h2>
 
@@ -205,7 +227,7 @@ session_start();
    
     
        <button type="button" onclick="previewExp()" style="cursor:pointer; background:#007bff; color:#fff; font-weight:600; padding:8px 16px; border-radius:6px; width: fit-content;">Preview </button>
-       <button type="button" onclick="submitExperiment()" style="cursor:pointer; background:#1a347a; color:#fff; font-weight:600; padding:8px 16px; border-radius:6px; width: fit-content;">Submit</button>
+       <button type="button" id="submitBtn" onclick="submitExperiment()" style="cursor:pointer; background:#1a347a; color:#fff; font-weight:600; padding:8px 16px; border-radius:6px; width: fit-content;">Submit</button>
             </div>
     </form>
 
@@ -251,6 +273,33 @@ session_start();
   </div>
 
   <script>
+    // -------- Fullscreen Toggle --------
+function toggleFullScreen() {
+    const elem = document.documentElement;
+    const btn = document.getElementById('fullscreenBtn');
+    if (!document.fullscreenElement) {
+        elem.requestFullscreen().then(() => {
+            btn.textContent = 'Exit Full Screen';
+            btn.title = 'Exit Full Screen';
+        });
+    } else {
+        document.exitFullscreen().then(() => {
+            btn.textContent = 'Full Screen';
+            btn.title = 'Full Screen';
+        });
+    }
+}
+
+document.addEventListener('fullscreenchange', function() {
+    const btn = document.getElementById('fullscreenBtn');
+    if (!document.fullscreenElement) {
+        btn.textContent = 'Full Screen';
+        btn.title = 'Full Screen';
+    } else {
+        btn.textContent = 'Exit Full Screen';
+        btn.title = 'Exit Full Screen';
+    }
+});
     let titrationChart = null;
 
     
@@ -787,7 +836,17 @@ session_start();
       }
       return rows;
     }
+    document.addEventListener("cheking tab switces", () => {
+  if (document.hidden) { console.log("tab_switched");
+  }
+});
 
+
+
+document.addEventListener("fullscreen", () => {
+  if (!document.fullscreenElement) {console.log("exit full screen");
+  }
+});
     // ---------- Preview Function ----------
     function previewExp() {
       const form = document.getElementById('exp6-form');
@@ -912,17 +971,45 @@ session_start();
       win.document.close();
     }
 
-    // ---------- Submit Experiment Function ----------
-    function submitExperiment() {
-      const form = document.getElementById('exp6-form');
-         const subject = 'chemistry';
-            const experiment_number = 6; // From your database
-            const employee_id = '123';
+    // ---------- Confirmation Dialog ----------
+    async function confirmSubmit() {
+        return new Promise((resolve) => {
+            const confirmed = confirm("Do you really want to submit this experiment?\nPlease review all your answers before submitting.\nClick OK to submit ");
+            resolve(confirmed);
+        });
+    }
 
-     
+    // ---------- Submit Experiment Function ----------
+    async function submitExperiment() {
+      console.log('Submit button clicked - starting submission');
       
+      // Show confirmation dialog
+      const shouldSubmit = await confirmSubmit();
+      if (!shouldSubmit) {
+          console.log('Submission cancelled by user');
+          return;
+      }
+      
+      const form = document.getElementById('exp6-form');
+      if (!form) {
+          alert('Error: Form not found!');
+          return;
+      }
+
+      const subject = 'Chemistry';
+      const experiment_number = 6;
+
+      // Get retake parameters if this is a retake
+      const urlParams = new URLSearchParams(window.location.search);
+      const retakeId = urlParams.get('retake_id');
+      const isRetake = urlParams.get('is_retake');
+      const retakeCount = urlParams.get('retake_count') || 0;
+
+
+      // Validation
       if (!form.aim.value.trim() || !form.chemicals.value.trim() || 
-          !form.principle.value.trim() || !form.result.value.trim()) {
+          !form.principle.value.trim() || !form.result.value.trim() ||
+          !form.procedure_a.value.trim() || !form.procedure_b.value.trim()) {
         alert("Please fill all required fields.");
         return;
       }
@@ -933,26 +1020,6 @@ session_start();
       if (apparatusList.length === 0) {
         alert("Please add at least one apparatus.");
         return;
-      }
-
-      // Collect graph data
-      const volumes = [];
-      const conductances = [];
-      
-      for (let i = 1; i <= 20; i++) {
-        const volumeInput = document.querySelector(`input[name="est_v${i}"]`);
-        const conductanceInput = document.querySelector(`input[name="est_vol_k2_${i}"]`);
-        
-        if (volumeInput && volumeInput.value && conductanceInput && conductanceInput.value) {
-          volumes.push(parseFloat(volumeInput.value));
-          conductances.push(parseFloat(conductanceInput.value));
-        }
-      }
-
-      // Create print-style graph for submission
-      let graphDataURL = '';
-      if (volumes.length >= 2) {
-        graphDataURL = createPrintStyleGraph(volumes, conductances);
       }
 
       const submissionHtml = `
@@ -979,104 +1046,94 @@ session_start();
       }
     </style>
     <div class="header-row">
-         <div><b>Experiment No.:</b> 6</div>
+      <div><b>Experiment No.:</b> 6</div>
       <div><b>Date:</b> ${escapeHtml(form.expDate.value || '')}</div>
     </div>
-    <h2 style="text-align:center; margin-top: 0;">CONDUCTOMETRIC TITRATION (WEAK ACID Vs STRONG BASE)</h2>
+    <h2 style="text-align:center; margin-top: 0;">DETERMINATION OF STRENGTH OF AN ACID (ACETIC ACID) BY CONDUCTOMETRIC TITRATION</h2>
 
     <p><b>Aim:</b> ${formatTextWithBreaks(form.aim.value || '')}</p>
     <p><b>Apparatus Used:</b> ${apparatusList.length ? escapeHtml(apparatusList.join(", ")) : '—'}</p>
     <p><b>Chemicals Required:</b> ${formatTextWithBreaks(form.chemicals.value || '')}</p>
     <p><b>Principle:</b> ${formatTextWithBreaks(form.principle.value || '')}</p>
 
-    <h3>Procedure - Part A: Standardization of NaOH</h3>
+    <h3>Procedure:</h3>
+    <p><b>Part A: Standardization of NaOH Solution</b></p>
     <p>${formatTextWithBreaks(form.procedure_a.value || '')}</p>
 
-    <table border="1" cellspacing="0" cellpadding="5" style="width:100%; border-collapse: collapse;">
-      <tr><th rowspan="2">S.No</th><th rowspan="2">Volume of CH₃COOH Solution (ml)</th><th colspan="2">Burette Reading (ml)</th><th rowspan="2">Volume of NaOH solution (ml)</th></tr>
-      <tr><th>Initial</th><th>Final</th></tr>
-      <tr><td>1</td><td>${escapeHtml(form.std_v1.value || '')}</td><td>${escapeHtml(form.std_br_initial1.value || '')}</td><td>${escapeHtml(form.std_br_final1.value || '')}</td><td>${escapeHtml(form.std_vol_k2_1.value || '')}</td></tr>
-      <tr><td>2</td><td>${escapeHtml(form.std_v2.value || '')}</td><td>${escapeHtml(form.std_br_initial2.value || '')}</td><td>${escapeHtml(form.std_br_final2.value || '')}</td><td>${escapeHtml(form.std_vol_k2_2.value || '')}</td></tr>
-      <tr><td>3</td><td>${escapeHtml(form.std_v3.value || '')}</td><td>${escapeHtml(form.std_br_initial3.value || '')}</td><td>${escapeHtml(form.std_br_final3.value || '')}</td><td>${escapeHtml(form.std_vol_k2_3.value || '')}</td></tr>
-    </table>
-
-    <h3>Calculations :</h3>
-    <div>
-      N₁: Normality of CH₃COOH solution = ${escapeHtml(form.calc_std_n1.value || '')} N<br><br>
-      N₂: Normality of NaOH solution = ${escapeHtml(form.calc_std_n2.value || '')}<br><br>
-      V₁: Volume of CH₃COOH solution = ${escapeHtml(form.calc_std_v1.value || '')}<br><br>
-      V₂: Volume of NaOH solution = ${escapeHtml(form.calc_std_v2.value || '')}<br><br>
-      Formula: N₁V₁ = N₂V₂<br><br>
-      N₂ = (N₁V₁) / V₂ = ${escapeHtml(form.calc_std_n2_calc.value || '')}<br><br>
-      Normality of NaOH solution (N₂) is ${escapeHtml(form.calc_std_n2_final.value || '')} N.
-    </div>
-
-    <h3>Procedure - Part B: Estimation of CH₃COOH</h3>
+    <h3>Part B: Determination of Strength of Acetic Acid</h3>
     <p>${formatTextWithBreaks(form.procedure_b.value || '')}</p>
 
-    <table border="1" cellspacing="0" cellpadding="5" style="width:100%; border-collapse: collapse;">
-      <tr><th>S.No</th><th>Volume of NaOH Added (ml)</th><th>Observed Conductance (µS/cm)</th><th>Corrected Conductance<br>G = ((u + v)/u)c</th></tr>
-      ${generateTableRowsForPreview()}
-    </table>
+    <h3>Result:</h3>
+    <p>${formatTextWithBreaks(form.result.value || '')}</p>
 
-    <div style="margin: 25px 0; text-align: center;">
-      <h3>Conductometric Titration Curve</h3>
-      ${graphDataURL ? `<img src="${graphDataURL}" alt="Conductometric Titration Curve" style="max-width: 100%; height: auto; border: 1px solid #000;" />` : '<p>No graph data available</p>'}
-      ${document.getElementById('calc_est_v1').value ? `<div style="margin-top: 15px; padding: 10px; background: #f0f0f0; border: 1px solid #000; border-radius: 0;">
-        <b>Equivalence Point:</b> ${document.getElementById('calc_est_v1').value} ml of NaOH
-      </div>` : ''}
-    </div>
-
-    <h3>Calculations :</h3>
+    <h3>Calculations:</h3>
     <div>
-      N₂: Normality of NaOH solution = ${escapeHtml(form.calc_est_n1.value || '')} N<br><br>
-      N₃: Normality of CH₃COOH solution = ${escapeHtml(form.calc_est_n2.value || '')}<br><br>
-      V₂: Volume of NaOH solution at endpoint = ${escapeHtml(form.calc_est_v1.value || '')} ml<br><br>
-      V₃: Volume of CH₃COOH solution = ${escapeHtml(form.calc_est_v2.value || '25')} ml<br><br>
-      Formula: N₂V₂ = N₃V₃<br><br>
-      N₃ = (N₂V₂) / V₃ = ${escapeHtml(form.calc_est_n3_calc.value || '')}<br><br>
-      Normality of CH₃COOH solution (N₃) is ${escapeHtml(form.calc_est_n3_final.value || '')} N<br><br>
-      Amount of CH₃COOH present in given solution is ${escapeHtml(form.calc_est_amount?.value || '')}<br><br>
-      Q = (E × N₃ × Volume in ml) / 1000 = ${escapeHtml(form.calc_est_q.value || '')} g/1000ml<br><br>
-      Where:<br><br>
+      N₁: Normality of NaOH = ${escapeHtml(form.calc_est_n1.value || '')} N<br><br>
+      N₂: Normality of Acetic Acid = ${escapeHtml(form.calc_est_n2.value || '')}<br><br>
+      V₁: Volume of NaOH = ${escapeHtml(form.calc_est_v1.value || '')} ml<br><br>
+      V₂: Volume of Acetic Acid = ${escapeHtml(form.calc_est_v2.value || '')} ml<br><br>
+      Formula: N₁V₁ = N₂V₂<br><br>
+      N₂ = (N₁V₁) / V₂ = ${escapeHtml(form.calc_est_n3_calc.value || '')}<br><br>
       E = Gram equivalent weight of CH₃COOH = ${escapeHtml(form.calc_est_e.value || '60')} grams<br><br>
-      N = Normality of CH₃COOH solution (N₃) = ${escapeHtml(form.calc_est_n_val.value || '')} N<br><br>
-      V = Volume of CH₃COOH solution = ${escapeHtml(form.calc_est_v_val.value || '25')} ml
+      Q = (E × N × V) / 1000 = ${escapeHtml(form.calc_est_q.value || '')} grams
     </div>
+      `;
 
-    <h3>Result :</h3><p>${formatTextWithBreaks(form.result.value || '')}</p>`;
-
+      // Prepare POST data
       const postData = new URLSearchParams();
-            postData.append('subject', subject);
-            postData.append('experiment_number', experiment_number);
-            postData.append('employee_id', employee_id);
-            postData.append('submission_data', submissionHtml);
+      postData.append('subject', subject);
+      postData.append('experiment_number', experiment_number);
+      postData.append('submission_data', submissionHtml);
 
-            fetch('../../submit_experiment.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: postData.toString()
-            })
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return res.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    alert(data.message);
-                    // Optional: clear form on success
-                    // form.reset();
-                } else {
-                    alert('Error: ' + data.message);
-                }
-            })
-            .catch(err => {
-                console.error('Error:', err);
-                alert('Error submitting experiment. Please check console for details.');
-            });
-        }
+      // Add retake parameters
+      if (isRetake === '1' && retakeId) {
+          postData.append('is_retake', '1');
+          postData.append('retake_id', retakeId);
+          postData.append('retake_count', retakeCount);
+          console.log('Submitting retake:', { retakeId, retakeCount });
+      }
+
+      // Show loading state
+      const submitBtn = document.querySelector('button[onclick="submitExperiment()"]');
+      const originalText = submitBtn.textContent;
+      submitBtn.textContent = 'Submitting...';
+      submitBtn.disabled = true;
+      
+      console.log('Sending fetch request...');
+      
+      fetch('../../submit_experiment.php', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+          body: postData.toString()
+      })
+      .then(res => {
+          console.log('Response received, status:', res.status);
+          if (!res.ok) {
+              throw new Error('Network response was not ok: ' + res.status);
+          }
+          return res.json();
+      })
+      .then(data => {
+          console.log('Response data:', data);
+          
+          // Reset button
+          submitBtn.textContent = originalText;
+          submitBtn.disabled = false;
+          
+          if (data.success) {
+              alert('✅ ' + data.message);
+              window.location.href = '../updated_exp.php';
+          } else {
+              alert('❌ ' + (data.message || 'Submission failed'));
+          }
+      })
+      .catch(error => {
+          console.error('Fetch error:', error);
+          submitBtn.textContent = originalText;
+          submitBtn.disabled = false;
+          alert('Error submitting experiment. Please try again.');
+      });
+    }
 
     // ---------- DOM Content Loaded ----------
     document.addEventListener('DOMContentLoaded', function() {

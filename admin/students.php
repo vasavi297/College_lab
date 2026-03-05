@@ -1,347 +1,788 @@
 <?php
-// Database connection
-$host = "localhost";
-$username = "root";
-$password = "";
-$database = "college_lab";
+// students.php
+session_start();
+require_once '../db_connect.php';
 
-$conn = new mysqli($host, $username, $password, $database);
-
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+// SESSION CHECK
+if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
+    // header('Location: index.php'); 
+    // exit;
 }
 
-// Check for success message from redirect
-if (isset($_GET['success'])) {
-    $success_message = $_GET['success'];
+$display_name = 'Admin';
+$username = htmlspecialchars($_SESSION['username'] ?? 'admin', ENT_QUOTES);
+
+// Handle Form Submission
+$message = '';
+
+// Helper: convert numeric semester to Roman I-VIII (fallback to original)
+function numberToRoman($num) {
+    $map = [1=>'I',2=>'II',3=>'III',4=>'IV',5=>'V',6=>'VI',7=>'VII',8=>'VIII'];
+    return $map[(int)$num] ?? strtoupper((string)$num);
 }
 
-// Handle form submission
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Check if it's a delete operation
-    if (isset($_POST['delete_id'])) {
-        $delete_id = $conn->real_escape_string($_POST['delete_id']);
-        $sql = "DELETE FROM students WHERE id = '$delete_id'";
-        if ($conn->query($sql)) {
-            $success_message = "Student deleted successfully!";
-        } else {
-            $error_message = "Error deleting student: " . $conn->error;
-        }
-    } else if (isset($_POST['update_student'])) {
-        // Handle update operation
-        $id = $conn->real_escape_string($_POST['id']);
-        $name = $conn->real_escape_string($_POST['NAME']);
-        $student_id = $conn->real_escape_string($_POST['student_id']);
-        $email = $conn->real_escape_string($_POST['email']);
-        $department = $conn->real_escape_string($_POST['department']);
-        $section = $conn->real_escape_string($_POST['section']);
-        $year = $conn->real_escape_string($_POST['YEAR']);
-        $semester = $conn->real_escape_string($_POST['semester']);
-        
-        // Check if student_id already exists (excluding current record)
-        $check_sql = "SELECT id FROM students WHERE student_id = ? AND id != ?";
-        $check_stmt = $conn->prepare($check_sql);
-        $check_stmt->bind_param("si", $student_id, $id);
-        $check_stmt->execute();
-        $check_stmt->store_result();
-        
-        if ($check_stmt->num_rows > 0) {
-            $error_message = "Error: Student ID '$student_id' already exists!";
-        } else {
-            $sql = "UPDATE students SET 
-                    student_id = '$student_id', 
-                    NAME = '$name', 
-                    email = '$email', 
-                    department = '$department', 
-                    section = '$section', 
-                    YEAR = '$year', 
-                    semester = '$semester' 
-                    WHERE id = '$id'";
-            
-            if ($conn->query($sql)) {
-                $success_message = "Student updated successfully!";
-                // Clear the edit_student variable and redirect to clear the form
-                $edit_student = null;
-                // Redirect to students page to clear the edit form
-                header("Location: students.php?success=Student updated successfully!");
-                exit();
-            } else {
-                $error_message = "Error updating student: " . $conn->error;
-            }
-        }
-        $check_stmt->close();
-    } else {
-        // Insert operation with duplicate check
-        $name = $conn->real_escape_string($_POST['NAME']);
-        $student_id = $conn->real_escape_string($_POST['student_id']);
-        $email = $conn->real_escape_string($_POST['email']);
-        $department = $conn->real_escape_string($_POST['department']);
-        $section = $conn->real_escape_string($_POST['section']);
-        $year = $conn->real_escape_string($_POST['YEAR']);
-        $semester = $conn->real_escape_string($_POST['semester']);
-        
-        // Check if student_id already exists
-        $check_sql = "SELECT id FROM students WHERE student_id = ?";
-        $check_stmt = $conn->prepare($check_sql);
-        $check_stmt->bind_param("s", $student_id);
-        $check_stmt->execute();
-        $check_stmt->store_result();
-        
-        if ($check_stmt->num_rows > 0) {
-            $error_message = "Error: Student ID '$student_id' already exists!";
-        } else {
-            // Use prepared statements instead of string concatenation
-            $stmt = $conn->prepare("INSERT INTO students (student_id, NAME, email, department, section, YEAR, semester) 
-                                    VALUES (?, ?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("sssssii", $student_id, $name, $email, $department, $section, $year, $semester);
-            
+// Handle Delete Student
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_student') {
+    $id = (int)$_POST['student_id'];
+    if ($id > 0) {
+        $stmt = $conn->prepare("DELETE FROM students WHERE student_id = ?");
+        if ($stmt) {
+            $stmt->bind_param("i", $id);
             if ($stmt->execute()) {
-                $success_message = "Student added successfully!";
+                $message = "<div class='alert alert-success'><i class='fa-solid fa-check'></i> Student deleted successfully!</div>";
             } else {
-                $error_message = "Error adding student: " . $stmt->error;
+                $message = "<div class='alert alert-error'><i class='fa-solid fa-triangle-exclamation'></i> Error deleting student: " . $stmt->error . "</div>";
             }
             $stmt->close();
         }
-        $check_stmt->close();
     }
 }
 
-// Fetch student data for editing
-$edit_student = null;
-if (isset($_GET['edit_id'])) {
-    $edit_id = $conn->real_escape_string($_GET['edit_id']);
-    $result = $conn->query("SELECT * FROM students WHERE id = '$edit_id'");
-    if ($result->num_rows > 0) {
-        $edit_student = $result->fetch_assoc();
-    }
-}
+// Handle Edit Student
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'edit_student') {
+    $id = (int)$_POST['id'];
+    $name = trim($_POST['name']);
+    $roll_number = trim($_POST['roll_number']);
+    $email = trim($_POST['email']);
+    $phone = trim($_POST['phone']);
+    $branch = trim($_POST['branch']);
+    $semester_raw = trim($_POST['semester']);
+    $semester = numberToRoman(is_numeric($semester_raw) ? (int)$semester_raw : $semester_raw);
+    $section = trim($_POST['section']);
+    $username = trim($_POST['username']);
 
-if (isset($_GET['delete_id'])) {
-    $delete_id = $conn->real_escape_string($_GET['delete_id']);
-    $sql = "DELETE FROM students WHERE id = '$delete_id'";
-    if ($conn->query($sql)) {
-        $success_message = "Student deleted successfully!";
-        header("Location: students.php?success=Student deleted successfully!");
-        exit();
+    if ($id > 0 && $name && $roll_number && $branch && $semester && $section && $username) {
+      $check_stmt = $conn->prepare("SELECT 1 FROM students WHERE username = ? AND student_id != ? LIMIT 1");
+      if ($check_stmt) {
+        $check_stmt->bind_param("si", $username, $id);
+        $check_stmt->execute();
+        $check_stmt->store_result();
+        if ($check_stmt->num_rows > 0) {
+          $message = "<div class='alert alert-error'>Username already exists. Please choose a different username.</div>";
+          $check_stmt->close();
+        } else {
+          $check_stmt->close();
+             if (!empty($_POST['password'])) {
+             $password = $_POST['password'];
+             $stmt = $conn->prepare("UPDATE students SET name = ?, roll_number = ?, email = ?, phone = ?, branch = ?, semester = ?, section = ?, username = ?, password = ? WHERE student_id = ?");
+             $stmt->bind_param("sssssssssi", $name, $roll_number, $email, $phone, $branch, $semester, $section, $username, $password, $id);
+          } else {
+             $stmt = $conn->prepare("UPDATE students SET name = ?, roll_number = ?, email = ?, phone = ?, branch = ?, semester = ?, section = ?, username = ? WHERE student_id = ?");
+             $stmt->bind_param("ssssssssi", $name, $roll_number, $email, $phone, $branch, $semester, $section, $username, $id);
+          }
+
+          if ($stmt->execute()) {
+              $message = "<div class='alert alert-success'><i class='fa-solid fa-check'></i> Student updated successfully!</div>";
+          } else {
+              $message = "<div class='alert alert-error'>Error updating student: " . $stmt->error . "</div>";
+          }
+          $stmt->close();
+        }
+      } else {
+        $message = "<div class='alert alert-error'>Database error checking username.</div>";
+      }
     } else {
-        $error_message = "Error deleting student: " . $conn->error;
+        $message = "<div class='alert alert-error'>Please fill all required fields.</div>";
     }
 }
 
-// Fetch students
-$students = $conn->query("SELECT * FROM students ORDER BY id DESC");
+// Handle Add Student
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_student') {
+    $name = trim($_POST['name']);
+    $roll_number = trim($_POST['roll_number']);
+    $email = trim($_POST['email']);
+    $phone = trim($_POST['phone']);
+    $branch = trim($_POST['branch']);
+    $semester_raw = trim($_POST['semester']);
+    $semester = numberToRoman(is_numeric($semester_raw) ? (int)$semester_raw : $semester_raw);
+    $section = trim($_POST['section']);
+    $username = trim($_POST['username']);
+    $password_raw = $_POST['password'];
+
+    if ($name && $roll_number && $branch && $semester && $section && $username && $password_raw) {
+        $password = $password_raw; 
+
+      $check_stmt = $conn->prepare("SELECT 1 FROM students WHERE username = ? LIMIT 1");
+      if ($check_stmt) {
+        $check_stmt->bind_param("s", $username);
+        $check_stmt->execute();
+        $check_stmt->store_result();
+        if ($check_stmt->num_rows > 0) {
+          $message = "<div class='alert alert-error'>Username already exists. Please choose a different username.</div>";
+          $check_stmt->close();
+        } else {
+          $check_stmt->close();
+
+        $stmt = $conn->prepare("INSERT INTO students (username, password, name, roll_number, email, phone, branch, semester, section) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        if ($stmt) {
+            $stmt->bind_param("sssssssss", $username, $password, $name, $roll_number, $email, $phone, $branch, $semester, $section);
+            if ($stmt->execute()) {
+                $message = "<div class='alert alert-success'><i class='fa-solid fa-check'></i> Student added successfully!</div>";
+            } else {
+                $message = "<div class='alert alert-error'>Error: " . $stmt->error . "</div>";
+            }
+            $stmt->close();
+        } else {
+             $message = "<div class='alert alert-error'>Database Error: " . $conn->error . "</div>";
+        }
+        }
+      } else {
+        $message = "<div class='alert alert-error'>Database error checking username.</div>";
+      }
+    } else {
+        $message = "<div class='alert alert-error'>Please fill all required fields.</div>";
+    }
+}
+
+// Fetch Students
+$students = [];
+if ($conn) {
+    $result = $conn->query("SELECT * FROM students ORDER BY student_id DESC");
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $students[] = $row;
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - Students</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <style>
-        .action-buttons {
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-        }
-        .action-buttons .btn, .action-buttons .btn-danger {
-            text-decoration: none;
-            display: inline-block;
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-weight: 500;
-            text-align: center;
-            border: none;
-            cursor: pointer;
-            font-size: 13px;
-            min-width: 60px;
-        }
-        .action-buttons .btn {
-            background: #3498db;
-            color: white;
-        }
-        .action-buttons .btn:hover {
-            background: #2980b9;
-        }
-        .action-buttons .btn-danger {
-            background: #e74c3c;
-            color: white;
-        }
-        .action-buttons .btn-danger:hover {
-            background: #c0392b;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Students | Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+    :root {
+        --primary-color: #1e3a8a;
+        --primary-light: #eff6ff;
+        --accent-color: #2563eb;
+        --secondary-color: #dc2626;
+        --text-dark: #0f172a;
+        --text-gray: #64748b;
+        --bg-body: #f1f5f9;
+        --white: #ffffff;
+        
+        --sidebar-width: 290px;
+        --header-height: 74px;
+        
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        
+        --radius-lg: 16px;
+        --radius-md: 12px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+    
+    html, body {
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+        background-color: var(--bg-body);
+        color: var(--text-dark);
+    }
+    
+    a { text-decoration: none; color: inherit; }
+
+    /* ================= SIDEBAR ================= */
+    .sidebar {
+        width: var(--sidebar-width);
+        background: var(--white);
+        height: 100vh;
+        position: fixed;
+        left: 0; top: 0; z-index: 100;
+        border-right: 1px solid #e2e8f0;
+        display: flex; flex-direction: column;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 10px 0 30px rgba(0,0,0,0.03);
+    }
+    .sidebar.closed { transform: translateX(-100%); }
+
+    .sidebar-brand { height: 90px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; border-bottom: 1px solid #f1f5f9; flex-shrink: 0; }
+    .brand-wrapper { display: flex; align-items: center; gap: 12px; }
+    .brand-wrapper img { height: 52px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); }
+    .brand-text { display: flex; flex-direction: column; line-height: 1.1; }
+    .brand-title { font-size: 24px; font-weight: 800; color: var(--primary-color); letter-spacing: -0.5px; }
+    .brand-subtitle { font-size: 10px; text-transform: uppercase; color: var(--text-gray); font-weight: 600; letter-spacing: 1px; }
+
+    .close-btn { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-gray); transition: 0.2s; }
+    .close-btn:hover { background: #f1f5f9; color: var(--secondary-color); }
+
+    .sidebar-user { padding: 24px; text-align: center; background: linear-gradient(to bottom, #ffffff, #f8fafc); border-bottom: 1px solid #e2e8f0; flex-shrink: 0; }
+    .sidebar-user img { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 4px solid var(--white); box-shadow: var(--shadow-card); margin-bottom: 10px; }
+
+    .sidebar-menu { padding: 20px 16px; flex: 1; overflow-y: auto; }
+    .menu-item { display: flex; align-items: center; padding: 14px 18px; margin-bottom: 6px; border-radius: var(--radius-md); color: var(--text-gray); font-weight: 500; font-size: 14px; transition: all 0.2s; border: 1px solid transparent; }
+    .menu-item i { width: 26px; font-size: 18px; margin-right: 12px; color: #94a3b8; transition: 0.2s; }
+    .menu-item:hover { background-color: #f8fafc; color: var(--primary-color); border-color: #e2e8f0; }
+    .menu-item:hover i { color: var(--primary-color); }
+    .menu-item.active { background: linear-gradient(45deg, var(--primary-color), #2563eb); color: var(--white); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
+    .menu-item.active i { color: var(--white); }
+
+    .logout-container { padding: 20px; border-top: 1px solid #f1f5f9; flex-shrink: 0; }
+    .logout-btn { display: flex; justify-content: center; align-items: center; width: 100%; padding: 12px; border-radius: var(--radius-md); background-color: #fef2f2; color: var(--secondary-color); font-weight: 600; font-size: 14px; transition: 0.2s; border: 1px solid #fee2e2; }
+    .logout-btn:hover { background-color: #fee2e2; transform: translateY(-1px); }
+
+    /* ================= MAIN CONTENT ================= */
+    .main-content { 
+        margin-left: var(--sidebar-width);
+        width: calc(100% - var(--sidebar-width));
+        height: 100vh;
+        overflow-y: auto;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .main-content.full-width { margin-left: 0; width: 100%; }
+
+    .top-header { 
+        height: var(--header-height); 
+        background: rgba(255, 255, 255, 0.9); 
+        backdrop-filter: blur(10px); 
+        display: flex; justify-content: space-between; align-items: center; 
+        padding: 0 32px; 
+        position: sticky; top: 0; z-index: 90; 
+        border-bottom: 1px solid #e2e8f0; 
+    }
+    .header-branding h1 { font-size: 18px; font-weight: 800; color: var(--primary-color); }
+    .header-branding p { font-size: 11px; color: var(--text-gray); font-weight: 600; letter-spacing: 0.5px; }
+    .toggle-btn { font-size: 20px; cursor: pointer; padding: 8px; border-radius: 8px; border: none; background: transparent; margin-right: 15px; color: var(--text-dark); }
+    
+    .dashboard-container { padding: 32px; max-width: 1400px; margin: 0 auto; }
+    
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(2px); z-index: 95; opacity: 0; visibility: hidden; transition: 0.3s; }
+
+    /* --- PAGE SPECIFIC --- */
+    .page-title { font-size: 24px; font-weight: 800; color: var(--text-dark); margin-bottom: 24px; }
+
+    /* FORM STYLES (from employee_update_experiment) */
+    .filter-card, .form-card {
+        background: var(--white);
+        padding: 28px;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-card);
+        border: 1px solid #f1f5f9;
+        margin-bottom: 30px;
+    }
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 20px;
+        align-items: end;
+    }
+    .form-group { margin-bottom: 5px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 700; color: var(--text-gray); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .form-group select, .form-group input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 14px; color: var(--text-dark); transition: 0.2s; background: #fff; }
+    .form-group select:focus, .form-group input:focus { outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+    
+    .btn { padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; border: none; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-primary { background: var(--accent-color); color: white; }
+    .btn-primary:hover { background: var(--primary-color); }
+    .btn-danger { background: #fee2e2; color: #b91c1c; }
+    .btn-danger:hover { background: #fecaca; }
+    .btn-edit { background: #dcfce7; color: #15803d; }
+    
+    /* TABLE STYLES (from employee_dashboard) */
+    .table-responsive { width: 100%; overflow-x: auto; background: var(--white); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); border: 1px solid #f1f5f9; }
+    table { width: 100%; border-collapse: separate; border-spacing: 0; }
+    th { text-align: left; padding: 18px 24px; background: #f8fafc; color: var(--text-gray); font-size: 12px; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; }
+    td { padding: 16px 24px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: var(--text-dark); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f8fafc; }
+    .empty-state { text-align: center; padding: 40px; color: var(--text-gray); }
+
+    .status-badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; background: #f1f5f9; color: var(--text-gray); }
+    
+    .alert { padding: 16px; border-radius: 12px; margin-bottom: 20px; font-size: 14px; display: flex; align-items: center; gap: 10px; }
+    .alert-success { background: #f0fdf4; color: #15803d; border: 1px solid #dcfce7; }
+    .alert-error { background: #fef2f2; color: #b91c1c; border: 1px solid #fee2e2; }
+
+    @media (max-width: 992px) {
+        .sidebar { transform: translateX(-100%); width: 280px; }
+        .sidebar.active { transform: translateX(0); }
+        .main-content { margin-left: 0; width: 100%; }
+        .overlay.active { opacity: 1; visibility: visible; }
+    }
+
+    @media (max-width: 768px) {
+        .top-header { padding: 0 20px; }
+        .dashboard-container { padding: 20px; }
+        .form-card { padding: 20px; }
+        .page-title { font-size: 20px; }
+        
+        .header-branding h1 { font-size: 14px; }
+        .header-branding p { font-size: 9px; }
+    }
+
+    @media (max-width: 600px) {
+        .header-branding { display: flex; flex-direction: column; }
+        .header-branding h1 { font-size: 12px; line-height: 1.2; }
+        .header-right .info-text { display: none; }
+        
+        .dashboard-container { padding: 15px; }
+        .form-card { padding: 15px; }
+        
+        .filter-section { flex-direction: column; align-items: stretch; gap: 10px; }
+        .filter-section input, .filter-section select { width: 100% !important; }
+        
+        .header-logout-btn span { display: none; }
+        .header-logout-btn { padding: 8px; }
+    }
+</style>
 </head>
 <body>
-    <div class="dashboard">
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <h2>Admin Panel</h2>
-            </div>
-            <nav>
-                    <a class="nav-item" href="dashboard.php" style="display:block;padding:16px 20px;border-radius:6px;color:#ecf0f1;text-decoration:none;background:transparent;" rel="noopener noreferrer">📊 Dashboard</a>
-                    <a class="nav-item" href="students.php" aria-current="page" style="display:block;padding:16px 20px;border-radius:6px;color:#ffffff;text-decoration:none;background:#345674;position:relative;">
-                    <span style="position:absolute;left:0;top:0;bottom:0;width:4px;background:#5dade2;border-top-left-radius:6px;border-bottom-left-radius:6px;"></span> 👨‍🎓 Students</a>
-                    <a class="nav-item" href="teachers.php" style="display:block;padding:16px 20px;border-radius:6px;color:#ecf0f1;text-decoration:none;background:transparent;" rel="noopener noreferrer">👨‍🏫 Teachers</a>
-                    <a class="nav-item" href="courses.php" style="display:block;padding:16px 20px;border-radius:6px;color:#ecf0f1;text-decoration:none;background:transparent;" rel="noopener noreferrer">📚 Courses</a>
-                    <a class="nav-item" href="timetable.php" style="display:block;padding:16px 20px;border-radius:6px;color:#ecf0f1;text-decoration:none;background:transparent;" rel="noopener noreferrer">🗓️ Timetable</a>
-                    <a class="nav-item" href="reports.php" style="display:block;padding:16px 20px;border-radius:6px;color:#ecf0f1;text-decoration:none;background:transparent;" rel="noopener noreferrer">📈 Reports</a>
-                    <a class="nav-item" href="announcements.php" style="display:block;padding:16px 20px;border-radius:6px;color:#ecf0f1;text-decoration:none;background:transparent;" rel="noopener noreferrer">📢 Announcements</a>
-            </nav>
-        </aside>
 
-        <main class="main-content" id="mainContent">
-            <div class="topbar">
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <button class="menu-toggle" id="menuToggle">☰</button>
-                    <h1 id="pageTitle">Students</h1>
-                </div>
-                <div class="user-info">
-                    <span>Admin User</span>
-                    <div class="user-avatar">A</div>
+    <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-wrapper">
+                <img src="../images/vasavi.png" alt="Logo">
+                <div class="brand-text">
+                    <span class="brand-title">SVEC</span>
+                    <span class="brand-subtitle">Administration</span>
                 </div>
             </div>
+            <div class="close-btn" onclick="toggleSidebar()"><i class="fa-solid fa-xmark"></i></div>
+        </div>
+        <div class="sidebar-user">
+            <img src="https://ui-avatars.com/api/?name=Admin&background=1e3a8a&color=fff&size=128">
+            <div style="font-weight:700; color:var(--text-dark);">Administrator</div>
+            <div style="font-size:12px; color:var(--text-gray);">admin</div>
+        </div>
+        <div class="sidebar-menu">
+            <a href="admin_dashboard.php" class="menu-item"> Dashboard</a>
+            <a href="students.php" class="menu-item active"> Students</a>
+            <a href="employees.php" class="menu-item"> Employees</a>
+            <a href="subjects.php" class="menu-item"> Subjects</a>
+            <a href="timetable.php" class="menu-item"> Timetable</a>
+            <a href="reports.php" class="menu-item"> Reports</a>
+             <a href="admin_control_pdf.php" class="menu-item"> Downloads</a>
+            <a href="announcements.php" class="menu-item"> Announcements</a>
+        </div>
+        <div class="logout-container">
+            <a href="logout.php" class="logout-btn"><i class="fa-solid fa-arrow-right-from-bracket" style="margin-right:8px;"></i> Logout</a>
+        </div>
+    </nav>
 
-            <div class="content">
-                
-                <?php if (isset($success_message)): ?>
-                    <div class="alert alert-success"><?php echo $success_message; ?></div>
-                <?php endif; ?>
-                
-                <?php if (isset($error_message)): ?>
-                    <div class="alert alert-error"><?php echo $error_message; ?></div>
-                <?php endif; ?>
+    <main class="main-content" id="mainContent">
+        <header class="top-header">
+            <div style="display:flex; align-items:center;">
+                <button class="toggle-btn" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+                <div class="header-branding">
+                    <h1>SRI VASAVI ENGINEERING COLLEGE</h1>
+                </div>
+            </div>
+            <div class="header-right" style="display:flex; align-items:center; gap:15px;">
+                <div class="info-text" style="text-align:right;">
+                    <div style="font-size:14px; font-weight:700; color:var(--text-dark);">Administrator</div>
+                    <div style="font-size:11px; color:var(--text-gray); font-weight:600;">Admin</div>
+                </div>
+                <img src="https://ui-avatars.com/api/?name=Admin&background=1e3a8a&color=fff" style="width:42px; height:42px; border-radius:50%; border:2px solid #e2e8f0;">
+                <a href="logout.php" class="header-logout-btn" style="display: flex; align-items: center; gap: 6px; padding: 8px 14px; background: #fef2f2; color: var(--secondary-color); border: 1px solid #fecaca; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all 0.2s;"><i class="fa-solid fa-arrow-right-from-bracket"></i> <span>LOG OUT</span></a>
+            </div>
+        </header>
 
-                <section class="section active" id="students">
-                    <div class="form-card">
-                        <h2><?php echo isset($edit_student) ? 'Edit Student' : 'Add New Student'; ?></h2>
-                        <form method="POST" action="">
-                            <?php if (isset($edit_student)): ?>
-                                <input type="hidden" name="id" value="<?php echo $edit_student['id']; ?>">
-                            <?php endif; ?>
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label>Student Name *</label>
-                                    <input type="text" name="NAME" required value="<?php echo isset($edit_student) ? $edit_student['NAME'] : ''; ?>">
-                                </div>
-                                <div class="form-group">
-                                    <label>Student ID *</label>
-                                    <input type="text" name="student_id" required value="<?php echo isset($edit_student) ? $edit_student['student_id'] : ''; ?>">
-                                </div>
-                                <div class="form-group">
-                                    <label>Email *</label>
-                                    <input type="email" name="email" required value="<?php echo isset($edit_student) ? $edit_student['email'] : ''; ?>">
-                                </div>
-                                <div class="form-group">
-                                    <label>Department *</label>
-                                    <select name="department" required>
-                                        <option value="">Select Department</option>
-                                        <option value="CSE" <?php echo (isset($edit_student) && $edit_student['department'] == 'CSE') ? 'selected' : ''; ?>>Computer Science Engineering</option>
-                                        <option value="ECE" <?php echo (isset($edit_student) && $edit_student['department'] == 'ECE') ? 'selected' : ''; ?>>Electronics & Communication</option>
-                                        <option value="EEE" <?php echo (isset($edit_student) && $edit_student['department'] == 'EEE') ? 'selected' : ''; ?>>Electrical & Electronics</option>
-                                        <option value="MECH" <?php echo (isset($edit_student) && $edit_student['department'] == 'MECH') ? 'selected' : ''; ?>>Mechanical Engineering</option>
-                                        <option value="CIVIL" <?php echo (isset($edit_student) && $edit_student['department'] == 'CIVIL') ? 'selected' : ''; ?>>Civil Engineering</option>
-                                        <option value="IT" <?php echo (isset($edit_student) && $edit_student['department'] == 'IT') ? 'selected' : ''; ?>>Information Technology</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Section *</label>
-                                    <select name="section" required>
-                                        <option value="">Select Section</option>
-                                        <option value="A" <?php echo (isset($edit_student) && $edit_student['section'] == 'A') ? 'selected' : ''; ?>>Section A</option>
-                                        <option value="B" <?php echo (isset($edit_student) && $edit_student['section'] == 'B') ? 'selected' : ''; ?>>Section B</option>
-                                        <option value="C" <?php echo (isset($edit_student) && $edit_student['section'] == 'C') ? 'selected' : ''; ?>>Section C</option>
-                                        <option value="D" <?php echo (isset($edit_student) && $edit_student['section'] == 'D') ? 'selected' : ''; ?>>Section D</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Year *</label>
-                                    <select name="YEAR" required>
-                                        <option value="">Select Year</option>
-                                        <option value="1" <?php echo (isset($edit_student) && $edit_student['YEAR'] == '1') ? 'selected' : ''; ?>>1st Year</option>
-                                        <option value="2" <?php echo (isset($edit_student) && $edit_student['YEAR'] == '2') ? 'selected' : ''; ?>>2nd Year</option>
-                                        <option value="3" <?php echo (isset($edit_student) && $edit_student['YEAR'] == '3') ? 'selected' : ''; ?>>3rd Year</option>
-                                        <option value="4" <?php echo (isset($edit_student) && $edit_student['YEAR'] == '4') ? 'selected' : ''; ?>>4th Year</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Semester *</label>
-                                    <select name="semester" required>
-                                        <option value="">Select Semester</option>
-                                        <option value="1" <?php echo (isset($edit_student) && $edit_student['semester'] == '1') ? 'selected' : ''; ?>>Semester 1</option>
-                                        <option value="2" <?php echo (isset($edit_student) && $edit_student['semester'] == '2') ? 'selected' : ''; ?>>Semester 2</option>
-                                        <option value="3" <?php echo (isset($edit_student) && $edit_student['semester'] == '3') ? 'selected' : ''; ?>>Semester 3</option>
-                                        <option value="4" <?php echo (isset($edit_student) && $edit_student['semester'] == '4') ? 'selected' : ''; ?>>Semester 4</option>
-                                        <option value="5" <?php echo (isset($edit_student) && $edit_student['semester'] == '5') ? 'selected' : ''; ?>>Semester 5</option>
-                                        <option value="6" <?php echo (isset($edit_student) && $edit_student['semester'] == '6') ? 'selected' : ''; ?>>Semester 6</option>
-                                        <option value="7" <?php echo (isset($edit_student) && $edit_student['semester'] == '7') ? 'selected' : ''; ?>>Semester 7</option>
-                                        <option value="8" <?php echo (isset($edit_student) && $edit_student['semester'] == '8') ? 'selected' : ''; ?>>Semester 8</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <?php if (isset($edit_student)): ?>
-                                <button type="submit" name="update_student" class="btn btn-primary">Update Student</button>
-                                <button type="button" onclick="window.location.href='students.php'" class="btn">Cancel</button>
-                            <?php else: ?>
-                                <button type="submit" class="btn btn-primary">Add Student</button>
-                            <?php endif; ?>
-                        </form>
-                    </div>
+        <div class="dashboard-container">
+            <div class="page-title">Manage Students</div>
+            
+            <?= $message ?>
 
-                    <div class="table-container">
-                        <div class="table-header">
-                            <h2>Student List</h2>
-                            <input type="text" class="search-box" placeholder="Search students..." id="studentSearch">
+            <div class="form-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid #f1f5f9; padding-bottom:15px;">
+                    <h3 id="formHeading" style="margin:0; color:var(--primary-color);">Add New Student</h3>
+                </div>
+
+                <form method="post" action="students.php" id="studentForm">
+                    <input type="hidden" name="action" id="formAction" value="add_student">
+                    <input type="hidden" name="id" id="student_id">
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Name <span style="color:#dc2626">*</span></label>
+                            <input name="name" id="student_name" placeholder="Full Name" required>
                         </div>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Student ID</th>
-                                    <th>Email</th>
-                                    <th>Department</th>
-                                    <th>Section</th>
-                                    <th>Year</th>
-                                    <th>Semester</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="studentTableBody">
-                                <?php if ($students->num_rows > 0): ?>
-                                    <?php while($student = $students->fetch_assoc()): ?>
-                                        <tr>
-                                            <td><?php echo $student['NAME']; ?></td>
-                                            <td><?php echo $student['student_id']; ?></td>
-                                            <td><?php echo $student['email']; ?></td>
-                                            <td><?php echo $student['department']; ?></td>
-                                            <td><?php echo $student['section']; ?></td>
-                                            <td><?php echo $student['YEAR']; ?></td>
-                                            <td><?php echo $student['semester']; ?></td>
-                                            <td>
-                                                <div class="action-buttons">
-                                                    <a href="students.php?edit_id=<?php echo $student['id']; ?>" class="btn">Edit</a>
-                                                    <a href="students.php?delete_id=<?php echo $student['id']; ?>" class="btn-danger" onclick="return confirm('Are you sure you want to delete this student?')">Delete</a>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    <?php endwhile; ?>
-                                <?php else: ?>
-                                    <tr>
-                                        <td colspan="8" class="empty-state">No students added yet</td>
-                                    </tr>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
+                        <div class="form-group">
+                            <label>Roll Number (ID) <span style="color:#dc2626">*</span></label>
+                            <input name="roll_number" id="student_roll_number" placeholder="e.g. 20A81A0501" required oninput="if(!document.getElementById('student_id').value) document.getElementById('student_username').value = this.value">
+                        </div>
+                        <div class="form-group">
+                            <label>Username <span style="color:#dc2626">*</span></label>
+                            <input name="username" id="student_username" placeholder="Login Username" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Password <span id="passwordLabel" style="color:#dc2626">*</span></label>
+                            <input name="password" id="student_password" type="text" placeholder="Login Password" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Branch <span style="color:#dc2626">*</span></label>
+                            <select name="branch" id="student_branch" required>
+                                <option value="">Select Branch</option>
+                                <option>CSE</option><option>CST</option><option>AIML</option><option>CAI</option>
+                                <option>CSD</option><option>ECE</option><option>ECT</option><option>EEE</option>
+                                <option>MECH</option><option>CIVIL</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Section <span style="color:#dc2626">*</span></label>
+                            <select name="section" id="student_section" required>
+                                <option value="">Select Section</option>
+                                <option value="A">A</option><option value="B">B</option><option value="C">C</option>
+                                <option value="D">D</option><option value="E">E</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Semester <span style="color:#dc2626">*</span></label>
+                            <select name="semester" id="student_semester" required>
+                                <option value="">Select Semester</option>
+                                <option value="I">I</option><option value="II">II</option><option value="III">III</option><option value="IV">IV</option>
+                                <option value="V">V</option><option value="VI">VI</option><option value="VII">VII</option><option value="VIII">VIII</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input name="email" id="student_email" type="email" placeholder="Optional">
+                        </div>
+                        <div class="form-group">
+                            <label>Phone</label>
+                            <input name="phone" id="student_phone" placeholder="Optional">
+                        </div>
                     </div>
-                </section>
+                    
+                    <div style="margin-top:24px; display:flex; gap:12px;">
+                        <button class="btn btn-primary" id="submitBtn" type="submit"><i class="fa-solid fa-plus"></i> Add Student</button>
+                        <button class="btn btn-danger" id="cancelEditBtn" type="button" onclick="cancelEdit()" style="display:none;"><i class="fa-solid fa-xmark"></i> Cancel Edit</button>
+                    </div>
+                </form>
             </div>
-        </main>
-    </div>
 
-    <script src="script.js"></script>
+            <!-- List Section -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <div class="page-title" style="font-size:18px; margin-bottom:0;">Student List</div>
+                <button class="btn" id="importBtn" style="background: #2563eb; color: white; gap: 8px;"><i class="fa-solid fa-upload"></i> Import Students</button>
+            </div>
+            
+            <div class="filter-card" style="padding:15px; display:flex; gap:15px; flex-wrap:wrap; margin-bottom:15px;">
+                 <input type="text" id="searchInput" placeholder="Search students..." style="padding:8px; border:1px solid #e2e8f0; border-radius:6px; flex:1; min-width:200px;">
+                 <select id="filterBranch" style="padding:8px; border:1px solid #e2e8f0; border-radius:6px;"><option value="">All Branches</option><option>CSE</option><option>CST</option><option>AIML</option><option>CAI</option><option>CSD</option><option>ECE</option><option>ECT</option><option>EEE</option><option>MECH</option><option>CIVIL</option></select>
+                 <select id="filterSection" style="padding:8px; border:1px solid #e2e8f0; border-radius:6px; width:100px;"><option value="">Section</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option><option value="E">E</option></select>
+                  <select id="filterSemester" style="padding:8px; border:1px solid #e2e8f0; border-radius:6px;"><option value="">Semester</option><option value="I">I</option><option value="II">II</option><option value="III">III</option><option value="IV">IV</option><option value="V">V</option><option value="VI">VI</option><option value="VII">VII</option><option value="VIII">VIII</option></select>
+            </div>
+
+            <!-- Import Modal -->
+            <div id="importModal" class="modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+                <div class="modal-content" style="background:white; padding:32px; border-radius:12px; max-width:500px; width:90%; box-shadow:0 20px 25px rgba(0,0,0,0.15);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+                        <h2 style="margin:0; font-size:20px; font-weight:700; color:var(--text-dark);">Import Students</h2>
+                        <button type="button" onclick="closeImportModal()" style="background:none; border:none; font-size:24px; cursor:pointer; color:var(--text-gray);">&times;</button>
+                    </div>
+                    
+                    <div id="importMessage" style="display:none; padding:12px; border-radius:8px; margin-bottom:16px;"></div>
+                    
+                    <form id="importForm" style="display:flex; flex-direction:column; gap:16px;">
+                        <div style="border:2px dashed #2563eb; border-radius:8px; padding:32px; text-align:center; cursor:pointer; background:#f0f7ff;" id="dropZone" onclick="document.getElementById('fileInput').click();">
+                            <div style="font-size:32px; color:#2563eb; margin-bottom:8px;"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                            <p style="margin:0; color:var(--text-dark); font-weight:600;">Click to browse or drag file here</p>
+                            <p style="margin:8px 0 0 0; font-size:12px; color:var(--text-gray);">CSV or Excel format (.csv, .xlsx, .xls)</p>
+                        </div>
+                        
+                        <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display:none;">
+                        <p id="fileName" style="margin:0; font-size:12px; color:var(--text-gray);"></p>
+                        
+                        <div style="background:#f0f7ff; border:1px solid #bfdbfe; border-radius:8px; padding:16px; font-size:12px; color:#1e40af;">
+                            <p style="margin:0 0 8px 0; font-weight:600;"><i class="fa-solid fa-info-circle"></i> Required CSV Columns:</p>
+                            <p style="margin:4px 0; font-family:monospace;">name, roll_number, username, password, branch, section, semester, email, phone</p>
+                            <p style="margin:8px 0 0 0; font-size:11px; color:#1e3a8a;">Maximum 10,000 students per import</p>
+                        </div>
+                        
+                        <div style="display:flex; gap:12px;">
+                            <button type="button" class="btn btn-primary" id="submitImportBtn" style="flex:1;"><i class="fa-solid fa-upload"></i> Import</button>
+                            <button type="button" class="btn" onclick="closeImportModal()" style="flex:1; background:#f1f5f9; color:var(--text-dark);">Cancel</button>
+                        </div>
+                    </form>
+                    
+                    <div id="importProgress" style="display:none; margin-top:16px;">
+                        <div style="height:6px; background:#e2e8f0; border-radius:4px; overflow:hidden;">
+                            <div id="progressBar" style="height:100%; background:#2563eb; width:0%; transition:width 0.3s;"></div>
+                        </div>
+                        <p id="importStatus" style="margin:8px 0 0 0; font-size:12px; color:var(--text-gray); text-align:center;"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Roll Number</th>
+                            <th>Username</th>
+                            <th>Branch</th>
+                            <th>Section</th>
+                            <th>Sem</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (count($students) > 0): ?>
+                            <?php foreach ($students as $s): ?>
+                            <tr>
+                                <td style="font-weight:600;"><?= htmlspecialchars($s['name']) ?></td>
+                                <td style="font-family:monospace; color:var(--text-gray);"><?= htmlspecialchars($s['roll_number']) ?></td>
+                                <td><?= htmlspecialchars($s['username']) ?></td>
+                                <td><span class="status-badge"><?= htmlspecialchars($s['branch']) ?></span></td>
+                                <td><?= htmlspecialchars($s['section'] ?? '-') ?></td>
+                                <?php $display_sem = numberToRoman(is_numeric($s['semester']) ? (int)$s['semester'] : $s['semester']); ?>
+                                <td><?= htmlspecialchars($display_sem) ?></td>
+                                <td>
+                                    <div style="display:flex; gap:8px;">
+                                        <button class="btn btn-edit" style="padding:6px 12px; font-size:12px;" onclick="editStudent(<?= $s['student_id'] ?>, '<?= htmlspecialchars($s['name'], ENT_QUOTES) ?>', '<?= htmlspecialchars($s['roll_number'], ENT_QUOTES) ?>', '<?= htmlspecialchars($s['username'], ENT_QUOTES) ?>', '<?= htmlspecialchars($s['branch'], ENT_QUOTES) ?>', '<?= htmlspecialchars($s['section'] ?? '', ENT_QUOTES) ?>', '<?= htmlspecialchars($display_sem, ENT_QUOTES) ?>', '<?= htmlspecialchars($s['email'] ?? '', ENT_QUOTES) ?>', '<?= htmlspecialchars($s['phone'] ?? '', ENT_QUOTES) ?>')">
+                                            <i class="fa-solid fa-pen"></i> Edit
+                                        </button>
+                                        <form method="post" style="margin:0;" onsubmit="return confirm('Are you sure?');">
+                                            <input type="hidden" name="action" value="delete_student">
+                                            <input type="hidden" name="student_id" value="<?= $s['student_id'] ?>">
+                                            <button type="submit" class="btn btn-danger" style="padding:6px 12px; font-size:12px;">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr><td colspan="7" class="empty-state">No students added yet</td></tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+            
+        </div>
+    </main>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            const overlay = document.getElementById('overlay');
+            if (window.innerWidth > 992) {
+                sidebar.classList.toggle('closed');
+                mainContent.classList.toggle('full-width');
+            } else {
+                sidebar.classList.toggle('active');
+                overlay.classList.toggle('active');
+            }
+        }
+
+        // Edit Student Logic
+        function editStudent(id, name, roll, username, branch, section, sem, email, phone) {
+            document.getElementById('student_id').value = id;
+            document.getElementById('student_name').value = name;
+            document.getElementById('student_roll_number').value = roll;
+            document.getElementById('student_username').value = username;
+            document.getElementById('student_branch').value = branch;
+            document.getElementById('student_section').value = section;
+            document.getElementById('student_semester').value = sem;
+            document.getElementById('student_email').value = email;
+            document.getElementById('student_phone').value = phone;
+            document.getElementById('student_password').value = '';
+            
+            document.getElementById('formHeading').textContent = 'Edit Student';
+            document.getElementById('formAction').value = 'edit_student';
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Update Student';
+            document.getElementById('cancelEditBtn').style.display = 'inline-flex';
+            document.getElementById('passwordLabel').style.display = 'none'; // Optional for edit
+            document.getElementById('student_password').placeholder = 'Leave blank to keep current';
+            document.getElementById('student_password').removeAttribute('required');
+            
+            document.getElementById('studentForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function cancelEdit() {
+            document.getElementById('studentForm').reset();
+            document.getElementById('student_id').value = '';
+            
+            document.getElementById('formHeading').textContent = 'Add New Student';
+            document.getElementById('formAction').value = 'add_student';
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Add Student';
+            document.getElementById('cancelEditBtn').style.display = 'none';
+            document.getElementById('passwordLabel').style.display = 'inline';
+            document.getElementById('student_password').placeholder = 'Login Password';
+            document.getElementById('student_password').setAttribute('required', 'required');
+        }
+
+        // Filter Logic
+        function filterStudents() {
+            const searchValue = document.getElementById('searchInput').value.toLowerCase();
+            const branchValue = document.getElementById('filterBranch').value.toLowerCase();
+            const sectionValue = document.getElementById('filterSection').value.toLowerCase();
+            const semesterValue = document.getElementById('filterSemester').value;
+            
+            const table = document.querySelector('table tbody');
+            const rows = table.getElementsByTagName('tr');
+            
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                if (row.getElementsByTagName('td').length < 2) continue; // Skip empty state
+                
+                const name = row.cells[0].textContent.toLowerCase();
+                const roll = row.cells[1].textContent.toLowerCase();
+                const username = row.cells[2].textContent.toLowerCase();
+                const branch = row.cells[3].textContent.toLowerCase();
+                const section = row.cells[4].textContent.toLowerCase();
+                const semester = row.cells[5].textContent;
+                
+                const matchesSearch = !searchValue || name.includes(searchValue) || roll.includes(searchValue) || username.includes(searchValue);
+                const matchesBranch = !branchValue || branch === branchValue;
+                const matchesSection = !sectionValue || section === sectionValue;
+                const matchesSemester = !semesterValue || semester === semesterValue;
+                
+                row.style.display = (matchesSearch && matchesBranch && matchesSection && matchesSemester) ? '' : 'none';
+            }
+        }
+        
+        document.getElementById('searchInput').addEventListener('input', filterStudents);
+        document.getElementById('filterBranch').addEventListener('change', filterStudents);
+        document.getElementById('filterSection').addEventListener('change', filterStudents);
+        document.getElementById('filterSemester').addEventListener('change', filterStudents);
+
+        // Import Students Functionality
+        let selectedFile = null;
+
+        document.getElementById('importBtn').addEventListener('click', function() {
+            document.getElementById('importModal').style.display = 'flex';
+            selectedFile = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('fileName').textContent = '';
+            document.getElementById('importMessage').style.display = 'none';
+            document.getElementById('importProgress').style.display = 'none';
+            document.getElementById('importForm').style.display = 'flex';
+        });
+
+        function closeImportModal() {
+            document.getElementById('importModal').style.display = 'none';
+            selectedFile = null;
+            document.getElementById('fileInput').value = '';
+        }
+
+        // Drag and drop handling
+        const dropZone = document.getElementById('dropZone');
+        
+        dropZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            dropZone.style.background = '#e0eeff';
+            dropZone.style.borderColor = '#1e40af';
+        });
+
+        dropZone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            dropZone.style.background = '#f0f7ff';
+            dropZone.style.borderColor = '#2563eb';
+        });
+
+        dropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            dropZone.style.background = '#f0f7ff';
+            dropZone.style.borderColor = '#2563eb';
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelect(files[0]);
+            }
+        });
+
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            const allowedTypes = ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+            const allowedExtensions = ['csv', 'xls', 'xlsx'];
+            const fileExtension = file.name.split('.').pop().toLowerCase();
+            
+            if (!allowedExtensions.includes(fileExtension)) {
+                showImportMessage('error', 'Invalid file type. Please upload CSV or Excel file.');
+                return;
+            }
+            
+            selectedFile = file;
+            document.getElementById('fileName').textContent = '📄 Selected: ' + file.name + ' (' + (file.size / 1024).toFixed(2) + ' KB)';
+        }
+
+        document.getElementById('submitImportBtn').addEventListener('click', async function() {
+            if (!selectedFile) {
+                showImportMessage('error', 'Please select a file first');
+                return;
+            }
+
+            document.getElementById('importForm').style.display = 'none';
+            document.getElementById('importProgress').style.display = 'block';
+            
+            const formData = new FormData();
+            formData.append('import_file', selectedFile);
+
+            try {
+                document.getElementById('importStatus').textContent = 'Uploading and processing file...';
+                
+                const response = await fetch('import_students.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    document.getElementById('progressBar').style.width = '100%';
+                    document.getElementById('importStatus').textContent = 'Import completed!';
+                    
+                    showImportMessage('success', `Successfully imported ${data.imported_count} students. ${data.failed_count > 0 ? 'Failed: ' + data.failed_count : ''}`);
+                    
+                    // Reload page after 2 seconds
+                    setTimeout(function() {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    document.getElementById('importStatus').textContent = 'Import failed';
+                    showImportMessage('error', data.message);
+                    document.getElementById('importForm').style.display = 'flex';
+                    document.getElementById('importProgress').style.display = 'none';
+                }
+            } catch (error) {
+                document.getElementById('importStatus').textContent = 'Error during import';
+                showImportMessage('error', 'Error: ' + error.message);
+                document.getElementById('importForm').style.display = 'flex';
+                document.getElementById('importProgress').style.display = 'none';
+            }
+        });
+
+        function showImportMessage(type, message) {
+            const messageDiv = document.getElementById('importMessage');
+            messageDiv.textContent = message;
+            messageDiv.style.display = 'block';
+            
+            if (type === 'success') {
+                messageDiv.style.background = '#f0fdf4';
+                messageDiv.style.color = '#15803d';
+                messageDiv.style.border = '1px solid #dcfce7';
+            } else {
+                messageDiv.style.background = '#fef2f2';
+                messageDiv.style.color = '#b91c1c';
+                messageDiv.style.border = '1px solid #fee2e2';
+            }
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('importModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeImportModal();
+            }
+        });
+    </script>
 </body>
 </html>
